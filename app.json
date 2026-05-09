@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "REPÓRTATE",
+    "slug": "reportate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "reportate",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A56DB"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.reportate.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "REPÓRTATE necesita tu ubicación para registrar el fin de jornada y enviar alertas SOS.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "REPÓRTATE necesita tu ubicación en segundo plano para el seguimiento de emergencias SOS.",
+        "NSUserNotificationsUsageDescription": "REPÓRTATE necesita enviarte notificaciones sobre el estado de tu grupo."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#1A56DB"
+      },
+      "package": "com.reportate.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "FOREGROUND_SERVICE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "REPÓRTATE necesita tu ubicación para el seguimiento SOS.",
+          "locationWhenInUsePermission": "REPÓRTATE necesita tu ubicación para registrar el fin de jornada."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#1A56DB",
+          "sounds": []
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
