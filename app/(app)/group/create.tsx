@@ -39,7 +39,8 @@ export default function CreateGroupScreen() {
       await create(name.trim(), description.trim() || undefined);
       router.back();
     } catch (e) {
-      Alert.alert('Error', e instanceof Error ? e.message : STRINGS.ERRORS.GENERIC);
+      const msg = e instanceof Error ? e.message : (e as any)?.message ?? STRINGS.ERRORS.GENERIC;
+      Alert.alert('Error', msg);
     } finally {
       setIsLoading(false);
     }

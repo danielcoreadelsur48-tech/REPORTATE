@@ -8,13 +8,23 @@ export function useAuth() {
   const { session, user, isLoading, setSession, setUser, setLoading, clear } = useAuthStore();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) {
-        getUserProfile(data.session.user.id).then(setUser);
-      }
-      setLoading(false);
-    });
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('session_timeout')), 5000)
+    );
+
+    Promise.race([supabase.auth.getSession(), timeout])
+      .then(({ data }) => {
+        setSession(data.session);
+        if (data.session?.user) {
+          getUserProfile(data.session.user.id).then(setUser);
+        }
+      })
+      .catch(() => {
+        setSession(null);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       setSession(newSession);
