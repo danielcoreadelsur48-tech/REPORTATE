@@ -400,6 +400,66 @@ Uso en código: `process.env.EXPO_PUBLIC_SUPABASE_URL` (el prefijo `EXPO_PUBLIC_
 
 ---
 
+## Checklist de Seguridad — OBLIGATORIO antes de cualquier deploy o push público
+
+> Esta sección se ejecuta **antes de cada `git push` a rama pública, build de producción, o deploy a cualquier entorno accesible desde internet**. No es opcional.
+
+### 1. Secretos y variables de entorno
+- [ ] `git diff --cached | grep -iE "private_key|password|secret|api_key|token|anon_key|service_role|0x[a-f0-9]{64}"` — cero resultados
+- [ ] `.env`, `.env.local`, `.env.production` están en `.gitignore` y **no aparecen** en `git status`
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` no está en ningún archivo del bundle cliente (`app/`, `components/`, `hooks/`, `store/`, `services/`)
+- [ ] `EXPO_PUBLIC_*` solo expone claves de **anon key** (no service role, no private keys)
+- [ ] No hay ningún valor hardcodeado de URL, token o credencial en `constants/config.ts` u otros archivos versionados
+
+### 2. RLS y base de datos
+- [ ] Todas las tablas tienen RLS habilitado — verificar con `SELECT tablename, rowsecurity FROM pg_tables WHERE schemaname = 'public'`
+- [ ] La columna `location` en `reports` (tipo `end`) solo es visible para capitanes — policy vigente en Supabase
+- [ ] `sos_events.location` está protegida: solo miembros del mismo grupo pueden leer
+- [ ] No hay policies con `USING (true)` sin justificación documentada
+- [ ] Los tokens de invitación se validan `expires_at > now()` en el servidor, no solo en cliente
+
+### 3. Edge Functions
+- [ ] Ninguna Edge Function expone datos sin verificar el JWT del usuario (`Authorization: Bearer <token>`)
+- [ ] El `SUPABASE_SERVICE_ROLE_KEY` se lee desde variables de entorno de la función, no hardcodeado
+- [ ] Las Edge Functions validan el `group_id` del usuario antes de enviar notificaciones push
+
+### 4. Notificaciones push
+- [ ] Los tokens `expo_push_token` se usan solo desde Edge Functions, nunca desde el cliente directamente
+- [ ] No se loggea el contenido de notificaciones con datos personales (nombre, ubicación GPS)
+
+### 5. Código cliente
+- [ ] No hay `console.log` con datos de usuario, coordenadas GPS, tokens o IDs sensibles en código de producción
+- [ ] Las coordenadas GPS nunca se muestran en texto plano en la UI (solo en mapa o compartidas con capitán)
+- [ ] Los errores de Supabase capturados con `catch` no se muestran al usuario con el mensaje interno — usar mensajes genéricos de `constants/strings.ts`
+- [ ] No hay `rejectUnauthorized: false`, `ssl: false`, ni `verify=False` en ninguna configuración de red
+
+### 6. Permisos de dispositivo
+- [ ] El permiso de ubicación (`expo-location`) se solicita solo cuando el usuario activa SOS o finaliza jornada — no al arrancar la app
+- [ ] El permiso de notificaciones se solicita con explicación contextual, no al primer launch sin justificación
+
+### 7. Dependencias
+- [ ] `npm audit` (o `expo doctor`) sin vulnerabilidades críticas o altas sin parche disponible
+- [ ] No hay paquetes con `postinstall` scripts sospechosos en `package.json`
+
+### Procedimiento
+```bash
+# 1. Verificar secretos staged
+git diff --cached | grep -iE "private_key|password|secret|api_key|token|anon_key|service_role"
+
+# 2. Verificar que .env no está staged
+git status | grep -E "\.env"
+
+# 3. Audit de dependencias
+npm audit --audit-level=high
+
+# 4. Buscar logs con datos sensibles
+grep -rn "console.log" app/ hooks/ services/ | grep -iE "location|token|password|email|gps|lat|lng"
+```
+
+Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist desde cero.
+
+---
+
 ## Reglas y Convenciones
 
 ### TypeScript
