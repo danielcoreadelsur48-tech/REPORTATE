@@ -28,7 +28,7 @@ export default function GroupScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const { user } = useAuthStore();
-  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers } = useGroup();
+  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers, remove } = useGroup();
   const [showAbsence, setShowAbsence] = useState(false);
   const [absentNames, setAbsentNames] = useState<string[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -58,6 +58,28 @@ export default function GroupScreen() {
       .map((m) => m.full_name);
     setAbsentNames(absentMemberNames);
     setShowAbsence(true);
+  }
+
+  function handleDeleteGroup() {
+    if (!activeGroup || !activeGroupId) return;
+    Alert.alert(
+      'Eliminar grupo',
+      `¿Estás seguro de que quieres eliminar "${activeGroup.name}"? Esta acción no se puede deshacer y eliminará todos los datos del grupo.`,
+      [
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
+        {
+          text: STRINGS.COMMON.DELETE,
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await remove(activeGroupId);
+            } catch {
+              Alert.alert('Error', STRINGS.ERRORS.GENERIC);
+            }
+          },
+        },
+      ],
+    );
   }
 
   async function handleSendAbsenceAlert(message: string) {
@@ -113,6 +135,14 @@ export default function GroupScreen() {
                 style={styles.iconBtn}
               >
                 <Ionicons name="person-add" size={24} color={Colors.primary[500]} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleDeleteGroup}
+                accessibilityRole="button"
+                accessibilityLabel="Eliminar grupo"
+                style={styles.iconBtn}
+              >
+                <Ionicons name="trash-outline" size={24} color={Colors.danger.DEFAULT} />
               </TouchableOpacity>
             </>
           )}

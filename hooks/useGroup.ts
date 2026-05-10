@@ -7,6 +7,7 @@ import {
   generateInvitation,
   joinGroupByToken,
   getGroupMembers,
+  deleteGroup,
 } from '@/services/supabase/groups';
 
 export function useGroup() {
@@ -59,6 +60,16 @@ export function useGroup() {
     await loadGroups();
   }, [user, loadGroups]);
 
+  const remove = useCallback(async (groupId: string) => {
+    await deleteGroup(groupId);
+    const remaining = groups.filter((g) => g.id !== groupId);
+    setGroups(remaining);
+    if (activeGroupId === groupId) {
+      setActiveGroupId(remaining.length > 0 ? remaining[0].id : null);
+    }
+    setMembers([]);
+  }, [groups, activeGroupId]);
+
   return {
     groups,
     activeGroup,
@@ -72,5 +83,6 @@ export function useGroup() {
     create,
     invite,
     joinByCode,
+    remove,
   };
 }

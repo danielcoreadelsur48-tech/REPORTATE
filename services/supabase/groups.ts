@@ -165,3 +165,11 @@ export async function getGroupById(groupId: string): Promise<DBGroup | null> {
   if (error) return null;
   return data as DBGroup;
 }
+
+export async function deleteGroup(groupId: string): Promise<void> {
+  const { error } = await supabase
+    .from('groups')
+    .delete()
+    .eq('id', groupId);
+  if (error) throw error;
+}
