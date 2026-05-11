@@ -63,4 +63,32 @@ export type NotificationType =
   | 'JOURNEY_END'
   | 'ABSENCE_ALERT'
   | 'SOS_ACTIVATED'
-  | 'SOS_RESOLVED';
+  | 'SOS_RESOLVED'
+  | 'CUSTOM_REPORT';
+
+// ── Report Buttons ───────────────────────────────────────────────────────────
+
+export interface DBReportButton {
+  id: string;
+  group_id: string;
+  name: string;
+  icon: string;
+  activation_time: string;   // "HH:MM:SS" as returned by Postgres time column
+  window_minutes: number;
+  is_home_button: boolean;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DBCustomReport {
+  id: string;
+  button_id: string;
+  user_id: string;
+  group_id: string;
+  location: { lat: number; lng: number } | null;
+  window_date: string;       // "YYYY-MM-DD"
+  activation_time: string;   // "HH:MM:SS"
+  window_minutes: number;
+  created_at: string;
+}

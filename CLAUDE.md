@@ -33,18 +33,13 @@ Aplicación móvil multiplataforma (Android + iOS) de **control de presencia dia
 - El capitán genera un token de invitación (link profundo o código de 6 caracteres) con fecha de expiración
 - Un usuario puede pertenecer a múltiples grupos
 
-### 4. Botón 1 — Inicio de Jornada
-- El miembro pulsa "Iniciar jornada"
-- Se registra en `reports` con `type: 'start'`, timestamp y user_id
-- Se envía notificación push a **todos los miembros del grupo**: `"{Nombre} ha iniciado su jornada"`
-- Solo puede haber un `start` activo por usuario por día
+### 4. Botón 1 — Inicio de Jornada ⚠️ REMOVIDO DE HOME
+- Lógica y componente (`JourneyButton`, `useJourney`) siguen existiendo en el código
+- **Eliminado de `home.tsx`** — ya no se muestra en la pantalla principal
+- Si se necesita reintegrar: agregar de vuelta el Card con `JourneyButton` y restaurar los imports
 
-### 5. Botón 2 — Fin de Jornada
-- El miembro pulsa "Finalizar jornada"
-- Se registra en `reports` con `type: 'end'`, timestamp, user_id y **ubicación GPS**
-- Notificación push a **todos los miembros**: `"{Nombre} ha finalizado su jornada"`
-- La ubicación GPS se comparte **únicamente con los capitanes** del grupo (RLS + lógica de vista)
-- Requiere que exista un `start` activo del mismo día
+### 5. Botón 2 — Fin de Jornada ⚠️ REMOVIDO DE HOME
+- Misma situación que Botón 1 — lógica intacta, UI removida de `home.tsx`
 
 ### 6. Alerta de Ausencia
 - Solo capitanes pueden activar esta función
@@ -65,11 +60,21 @@ Aplicación móvil multiplataforma (Android + iOS) de **control de presencia dia
 - Feedback háptico intenso (`Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error)`) al activar
 - Botón visualmente diferenciado: rojo, grande, con animación de pulso
 
-### 8. Notificaciones Push
-- Proveedor: **Expo Notifications** para el canal de desarrollo; **Firebase Cloud Messaging** para producción (Android) y APNs (iOS) vía Expo
+### 8. Botones de Reporte Personalizados
+- Los capitanes crean hasta 5 botones por grupo (`report_buttons`) con nombre, icono, hora de activación y ventana de tiempo
+- Cada botón tiene un estado: `upcoming` / `active` / `completed` / `expired`
+- Al pulsar un botón activo se registra en `custom_reports` con timestamp y (si es `is_home_button`) ubicación GPS
+- Notificación push a todos los miembros del grupo al pulsar
+- Recordatorio local programado (`expo-notifications`) a la hora de activación cada día
+- El botón de casa (`is_home_button: true`) captura GPS — solo puede haber uno por grupo
+
+### 9. Notificaciones Push
+- Proveedor: **Expo Notifications + FCM** — requiere `google-services.json` en la raíz para builds de EAS
 - Tokens de dispositivo almacenados en `users.expo_push_token`
-- Envío desde **Supabase Edge Functions** (TypeScript) para no exponer credenciales en el cliente
-- Tipos de notificación: `JOURNEY_START`, `JOURNEY_END`, `ABSENCE_ALERT`, `SOS_ACTIVATED`, `SOS_RESOLVED`
+- Envío desde **Supabase Edge Functions** (`supabase/functions/send-notification/`)
+- `getExpoPushTokenAsync` **debe** recibir `{ projectId }` desde `Constants.expoConfig.extra.eas.projectId` — sin esto los tokens son `null` y ninguna notificación llega
+- Tipos de notificación: `JOURNEY_START`, `JOURNEY_END`, `ABSENCE_ALERT`, `SOS_ACTIVATED`, `SOS_RESOLVED`, `CUSTOM_REPORT`
+- SOS llega a **todos los miembros** del grupo (sin filtro de rol)
 
 ### 9. UX/UI Profesional
 - Sistema de diseño consistente con tokens definidos en `constants/theme.ts`
@@ -84,7 +89,7 @@ Aplicación móvil multiplataforma (Android + iOS) de **control de presencia dia
 
 | Capa | Tecnología | Razón |
 |---|---|---|
-| Framework | **React Native + Expo SDK 51+** | Multiplataforma real, ecosistema maduro, OTA updates |
+| Framework | **React Native + Expo SDK 54** | Multiplataforma real, ecosistema maduro, OTA updates |
 | Navegación | **Expo Router v3** (file-based) | Convención sobre configuración, deep links nativos |
 | Backend/BaaS | **Supabase** | Auth + PostgreSQL + Realtime + Storage + Edge Functions en uno |
 | Notificaciones | **Expo Notifications + FCM** | Integración nativa con Expo, soporte Android/iOS |
@@ -140,12 +145,14 @@ REPÓRTATE/
 │   │   └── EmptyState.tsx            # Estado vacío con ilustración y CTA
 │   │
 │   └── features/                     # Componentes de dominio
-│       ├── JourneyButton.tsx         # Botón de inicio/fin de jornada con estado
+│       ├── JourneyButton.tsx         # Botón de inicio/fin de jornada (removido de home.tsx)
 │       ├── SOSButton.tsx             # Botón SOS con animación de pulso
 │       ├── SOSConfirmModal.tsx       # Modal de confirmación con cuenta regresiva
 │       ├── MemberCard.tsx            # Tarjeta de miembro con estado de jornada
 │       ├── GroupHeader.tsx           # Encabezado de grupo con info y acciones
-│       └── AbsenceAlertModal.tsx     # Modal para enviar alerta de ausencia
+│       ├── AbsenceAlertModal.tsx     # Modal para enviar alerta de ausencia
+│       ├── ReportButtonGrid.tsx      # Grilla de botones de reporte personalizados
+│       └── ReportButtonEditor.tsx    # Formulario de creación/edición de botones (capitán)
 │
 ├── hooks/
 │   ├── useAuth.ts                    # Estado de sesión, login, logout, registro
@@ -153,7 +160,8 @@ REPÓRTATE/
 │   ├── useJourney.ts                 # Lógica de botones 1 y 2, estado del día
 │   ├── useSOS.ts                     # Activación, tracking y desactivación de SOS
 │   ├── useNotifications.ts           # Registro de token, permisos, listeners
-│   └── useLocation.ts               # Solicitud de permisos GPS y obtención de coordenadas
+│   ├── useLocation.ts               # Solicitud de permisos GPS y obtención de coordenadas
+│   └── useReportButtons.ts          # Estado, press, recordatorios de botones de reporte
 │
 ├── store/
 │   ├── authStore.ts                  # Usuario actual, token de sesión (Zustand)
@@ -166,7 +174,8 @@ REPÓRTATE/
 │   │   ├── auth.ts                   # Funciones de autenticación
 │   │   ├── groups.ts                 # Queries de grupos e invitaciones
 │   │   ├── reports.ts                # Insertar y consultar reports de jornada
-│   │   └── sos.ts                    # CRUD de sos_events, suscripción realtime
+│   │   ├── sos.ts                    # CRUD de sos_events, suscripción realtime
+│   │   └── reportButtons.ts          # CRUD de report_buttons y custom_reports
 │   │
 │   ├── notifications/
 │   │   ├── registerToken.ts          # Registrar expo push token en Supabase
@@ -201,9 +210,11 @@ REPÓRTATE/
 │       └── send-notification/        # Edge Function para envío de push
 │           └── index.ts
 │
+├── google-services.json              # Credenciales FCM para Android (EAS build) — NO al repo
 ├── .env                              # Variables de entorno locales (nunca al repo)
 ├── .env.example                      # Plantilla de variables (sí al repo)
-├── app.json                          # Configuración de Expo
+├── app.json                          # Configuración de Expo (incluye googleServicesFile)
+├── eas.json                          # Perfiles de build: development (APK), preview (APK), production (AAB)
 ├── babel.config.js
 ├── tsconfig.json                     # strict: true
 └── package.json
@@ -457,6 +468,66 @@ grep -rn "console.log" app/ hooks/ services/ | grep -iE "location|token|password
 ```
 
 Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist desde cero.
+
+---
+
+## Estado Actual del Proyecto (2026-05-10)
+
+### Infraestructura
+- **Supabase project**: `msokvacqoptnanyamyoc` (plan free, org "Noland")
+- **EAS project**: `@noland4/reportate` — projectId `fb2b163c-997b-4b32-85fb-dd1ad93c6865`
+- **Firebase project**: `reportate-55667` — `google-services.json` en raíz del proyecto
+
+### Build activo
+- Perfil `development` (APK con `expo-dev-client`, `distribution: internal`)
+- Comando: `eas build --profile development --platform android`
+- Para conectar al Metro local: `npx expo start --dev-client` (mismo WiFi) o `--tunnel` (cualquier red)
+- Push notifications **no** dependen del WiFi — llegan por internet
+
+### Funcionalidades implementadas ✓
+- Autenticación (login, registro, logout, sesión persistente)
+- Crear y eliminar grupos (solo capitanes)
+- Botones de reporte personalizados (crear, grilla, press, notificación grupal, recordatorio local)
+- Botón SOS (activación con confirmación, tracking GPS, notificación a todos los miembros)
+- Edge Function `send-notification` desplegada
+
+### Funcionalidades pendientes
+- Invitaciones (generar token, unirse por código)
+- Alerta de ausencia (función de capitán)
+- Vista de ubicación de miembros en fin de jornada (solo capitanes)
+
+### Migraciones
+- ✓ `001_initial_schema.sql`
+- ✓ `002_add_group_delete_policy.sql`
+- ⏳ `003_fix_invitation_policies.sql` — pendiente de aplicar
+- ⏳ `004_report_buttons.sql` — pendiente de aplicar
+
+### Bugs resueltos críticos
+| Bug | Síntoma | Fix |
+|---|---|---|
+| `getExpoPushTokenAsync` sin `projectId` | Tokens `null` en DB, ninguna notificación llega | `registerToken.ts`: pasar `{ projectId: Constants.expoConfig.extra.eas.projectId }` |
+| Sin `google-services.json` | FCM no funciona en APK de EAS | Agregar archivo + `googleServicesFile` en `app.json` |
+| RLS `auth.uid()` en policies | INSERT fallaba en groups, reports, sos_events | Usar `(select auth.uid())` en todas las policies |
+| Invalid Refresh Token en hot reload | Error silencioso en dev | Detectar `TOKEN_REFRESHED` sin sesión en `onAuthStateChange` y llamar `clear()` |
+
+### Cuentas de usuario en DB
+- `e5073812...` → dineroleo8@gmail.com ("Daniel Ramos")
+- `24ed50f3...` → dineroleoayd48@gmail.com ("daniel") ← cuenta activa en el teléfono
+
+### Comandos clave
+```bash
+# Rebuild APK de desarrollo
+eas build --profile development --platform android
+
+# Rebuild APK sin dev client (para probar sin Metro)
+eas build --profile preview --platform android
+
+# Desplegar Edge Function
+SUPABASE_ACCESS_TOKEN=<token> npx supabase functions deploy send-notification --project-ref msokvacqoptnanyamyoc
+
+# Recargar caché PostgREST (en SQL Editor de Supabase)
+NOTIFY pgrst, 'reload schema';
+```
 
 ---
 

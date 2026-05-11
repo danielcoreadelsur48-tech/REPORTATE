@@ -1,4 +1,5 @@
 export * from './database';
+import type { DBReportButton } from './database';
 
 export interface MemberWithStatus {
   user_id: string;
@@ -27,4 +28,11 @@ export interface ActiveSOS {
   lat: number;
   lng: number;
   activated_at: string;
+}
+
+export interface ReportButtonWithState extends DBReportButton {
+  status: 'upcoming' | 'active' | 'completed' | 'expired';
+  windowStart: Date;
+  windowEnd: Date;
+  pressedAt: string | null;   // ISO string if pressed in this window, else null
 }

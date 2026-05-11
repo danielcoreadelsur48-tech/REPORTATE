@@ -71,7 +71,7 @@ export async function generateInvitation(groupId: string, createdBy: string): Pr
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) throw new Error(error.message);
   return data as DBInvitation;
 }
 

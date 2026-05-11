@@ -37,7 +37,7 @@ export function useAuth() {
         const profile = await getUserProfile(newSession.user.id);
         setUser(profile);
         if (profile) {
-          registerForPushNotifications(profile.id).catch(() => {});
+          registerForPushNotifications(profile.id).catch((e) => console.warn('[Push] Token registration failed:', e));
         }
       } else {
         setUser(null);

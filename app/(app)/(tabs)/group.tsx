@@ -38,7 +38,7 @@ export default function GroupScreen() {
 
   useEffect(() => {
     loadGroups();
-  }, []);
+  }, [loadGroups]);
 
   useEffect(() => {
     if (activeGroupId) loadMembers(activeGroupId);
@@ -135,6 +135,14 @@ export default function GroupScreen() {
                 style={styles.iconBtn}
               >
                 <Ionicons name="person-add" size={24} color={Colors.primary[500]} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => router.push('/(app)/group/buttons')}
+                accessibilityRole="button"
+                accessibilityLabel={STRINGS.REPORT_BUTTONS.MANAGE_TITLE}
+                style={styles.iconBtn}
+              >
+                <Ionicons name="options-outline" size={24} color={Colors.primary[500]} />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleDeleteGroup}
