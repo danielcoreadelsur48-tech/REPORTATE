@@ -127,6 +127,7 @@ export const STRINGS = {
   },
   ERRORS: {
     GENERIC: 'Ocurrió un error. Intenta de nuevo.',
+    INVALID_CREDENTIALS: 'Correo o contraseña incorrectos',
     NETWORK: 'Sin conexión. Verifica tu red.',
     INVALID_EMAIL: 'Correo electrónico inválido',
     WEAK_PASSWORD: 'La contraseña debe tener al menos 8 caracteres',

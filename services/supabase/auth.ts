@@ -1,9 +1,16 @@
 import { supabase } from './client';
 import { DBUser } from '@/types/database';
+import { STRINGS } from '@/constants/strings';
 
 export async function signIn(email: string, password: string) {
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) throw error;
+  if (error) {
+    console.error('[Auth] signIn error:', error.message, error);
+    if (error.message.includes('Invalid login credentials')) {
+      throw new Error(STRINGS.ERRORS.INVALID_CREDENTIALS);
+    }
+    throw new Error(STRINGS.ERRORS.GENERIC);
+  }
   return data;
 }
 
