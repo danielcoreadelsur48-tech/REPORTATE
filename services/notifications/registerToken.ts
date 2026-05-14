@@ -34,8 +34,13 @@ export async function registerForPushNotifications(userId: string): Promise<stri
     });
   }
 
-  const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
-  const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-  await updatePushToken(userId, token);
-  return token;
+  try {
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
+    const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    await updatePushToken(userId, token);
+    return token;
+  } catch (e) {
+    console.warn('[Push] getExpoPushTokenAsync failed:', e);
+    return null;
+  }
 }
