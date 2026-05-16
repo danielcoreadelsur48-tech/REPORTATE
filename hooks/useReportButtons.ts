@@ -22,6 +22,8 @@ function computeStatus(
   now: Date,
   pressedReport: DBCustomReport | undefined,
 ): ReportButtonWithState['status'] {
+  const activeDays = button.active_days ?? [0, 1, 2, 3, 4, 5, 6];
+  if (!activeDays.includes(now.getDay())) return 'day_inactive';
   const { start, end } = computeWindowBounds(button, now);
   if (now < start) return 'upcoming';
   if (now > end) return pressedReport ? 'completed' : 'expired';
@@ -54,22 +56,44 @@ async function scheduleButtonReminders(buttons: DBReportButton[]): Promise<void>
 
   for (const btn of buttons) {
     const [h, m] = btn.activation_time.split(':').map(Number);
+    const activeDays = btn.active_days ?? [0, 1, 2, 3, 4, 5, 6];
+    const content = {
+      title: STRINGS.NOTIFICATIONS.BUTTON_REMINDER_TITLE,
+      body: STRINGS.NOTIFICATIONS.BUTTON_REMINDER_BODY.replace('{buttonName}', btn.name),
+      sound: true,
+      data: { buttonId: btn.id },
+    };
+
     try {
-      await Notifications.scheduleNotificationAsync({
-        identifier: `${NOTIF_ID_PREFIX}${btn.id}`,
-        content: {
-          title: STRINGS.NOTIFICATIONS.BUTTON_REMINDER_TITLE,
-          body: STRINGS.NOTIFICATIONS.BUTTON_REMINDER_BODY.replace('{buttonName}', btn.name),
-          sound: true,
-          data: { buttonId: btn.id },
-        },
-        trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.DAILY,
-          hour: h,
-          minute: m,
-          channelId: 'default',
-        },
-      });
+      if (activeDays.length === 7) {
+        // All days — single daily trigger is sufficient
+        await Notifications.scheduleNotificationAsync({
+          identifier: `${NOTIF_ID_PREFIX}${btn.id}`,
+          content,
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: h,
+            minute: m,
+            channelId: 'default',
+          },
+        });
+      } else {
+        // One weekly trigger per active day
+        // Expo weekday: 1=Sun, 2=Mon, ..., 7=Sat  →  jsDay + 1
+        for (const day of activeDays) {
+          await Notifications.scheduleNotificationAsync({
+            identifier: `${NOTIF_ID_PREFIX}${btn.id}-d${day}`,
+            content,
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+              weekday: day + 1,
+              hour: h,
+              minute: m,
+              channelId: 'default',
+            },
+          });
+        }
+      }
     } catch (e) {
       console.warn(`[useReportButtons] Failed to schedule reminder for button ${btn.id}:`, e);
     }
@@ -79,9 +103,14 @@ async function scheduleButtonReminders(buttons: DBReportButton[]): Promise<void>
 async function cancelButtonReminders(buttons: DBReportButton[]): Promise<void> {
   for (const btn of buttons) {
     try {
+      // Cancel daily variant (used when all days are active)
       await Notifications.cancelScheduledNotificationAsync(`${NOTIF_ID_PREFIX}${btn.id}`);
+      // Cancel all possible weekly variants regardless of current active_days
+      for (let d = 0; d < 7; d++) {
+        await Notifications.cancelScheduledNotificationAsync(`${NOTIF_ID_PREFIX}${btn.id}-d${d}`);
+      }
     } catch {
-      // Notification may not exist yet — safe to ignore
+      // Notifications may not exist — safe to ignore
     }
   }
 }
@@ -89,10 +118,12 @@ async function cancelButtonReminders(buttons: DBReportButton[]): Promise<void> {
 export function useReportButtons(groupId: string | null, isCaptain: boolean) {
   const { user } = useAuthStore();
   const [rawButtons, setRawButtons] = useState<DBReportButton[]>([]);
+  const rawButtonsRef = useRef<DBReportButton[]>([]);
   const [pressedReports, setPressedReports] = useState<DBCustomReport[]>([]);
   const [buttons, setButtons] = useState<ReportButtonWithState[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  rawButtonsRef.current = rawButtons;
   const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const recomputeStatuses = useCallback((raw: DBReportButton[], pressed: DBCustomReport[]) => {
@@ -122,7 +153,7 @@ export function useReportButtons(groupId: string | null, isCaptain: boolean) {
 
   // Cancel reminders when group changes or component unmounts
   useEffect(() => {
-    return () => { cancelButtonReminders(rawButtons); };
+    return () => { cancelButtonReminders(rawButtonsRef.current); };
   }, [groupId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start ticker after first successful load

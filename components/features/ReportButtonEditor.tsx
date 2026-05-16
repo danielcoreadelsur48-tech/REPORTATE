@@ -18,6 +18,7 @@ import { createButton, updateButton } from '@/services/supabase/reportButtons';
 import { Colors, Typography, Spacing, Radius } from '@/constants/theme';
 import { STRINGS } from '@/constants/strings';
 import { CONFIG } from '@/constants/config';
+import { WEEK_DAYS } from '@/utils/formatDays';
 
 interface ReportButtonEditorProps {
   groupId: string;
@@ -45,6 +46,9 @@ export function ReportButtonEditor({ groupId, button, onSave, onClose }: ReportB
   );
   const [isHomeButton, setIsHomeButton] = useState(button?.is_home_button ?? false);
   const [sortOrder, setSortOrder] = useState(button ? String(button.sort_order) : '1');
+  const [activeDays, setActiveDays] = useState<number[]>(
+    button?.active_days ?? [0, 1, 2, 3, 4, 5, 6],
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -78,6 +82,11 @@ export function ReportButtonEditor({ groupId, button, onSave, onClose }: ReportB
       return;
     }
 
+    if (activeDays.length === 0) {
+      setFormError('Debes seleccionar al menos un día activo.');
+      return;
+    }
+
     const payload = {
       name: trimmedName,
       icon,
@@ -85,6 +94,7 @@ export function ReportButtonEditor({ groupId, button, onSave, onClose }: ReportB
       window_minutes: wm,
       is_home_button: isHomeButton,
       sort_order: so,
+      active_days: activeDays,
     };
 
     setIsSaving(true);
@@ -98,10 +108,7 @@ export function ReportButtonEditor({ groupId, button, onSave, onClose }: ReportB
       onSave(saved);
     } catch (e) {
       const msg = e instanceof Error ? e.message : STRINGS.ERRORS.GENERIC;
-      if (
-        msg.includes('Máximo 5') ||
-        msg.includes('botón de casa')
-      ) {
+      if (msg.includes('Máximo 5')) {
         setFormError(msg);
       } else {
         Alert.alert(STRINGS.ERRORS.GENERIC, msg);
@@ -218,6 +225,37 @@ export function ReportButtonEditor({ groupId, button, onSave, onClose }: ReportB
           />
         </View>
 
+        {/* Day-of-week picker */}
+        <Text style={[styles.fieldLabel, { color: textColor }]}>
+          {STRINGS.REPORT_BUTTONS.ACTIVE_DAYS_LABEL}
+        </Text>
+        <View style={styles.daysRow}>
+          {WEEK_DAYS.map(({ day, short, label }) => {
+            const selected = activeDays.includes(day);
+            return (
+              <TouchableOpacity
+                key={day}
+                onPress={() =>
+                  setActiveDays((prev) =>
+                    selected ? prev.filter((d) => d !== day) : [...prev, day],
+                  )
+                }
+                accessibilityRole="checkbox"
+                accessibilityLabel={label}
+                accessibilityState={{ checked: selected }}
+                style={[
+                  styles.dayChip,
+                  selected && styles.dayChipSelected,
+                ]}
+              >
+                <Text style={[styles.dayChipText, selected && styles.dayChipTextSelected]}>
+                  {short}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         {formError && (
           <Text style={styles.formError}>{formError}</Text>
         )}
@@ -298,6 +336,33 @@ const styles = StyleSheet.create({
   },
   toggleNote: {
     fontSize: Typography.size.xs,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: Spacing[4],
+  },
+  dayChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.neutral[300],
+    backgroundColor: 'transparent',
+  },
+  dayChipSelected: {
+    backgroundColor: Colors.primary[500],
+    borderColor: Colors.primary[500],
+  },
+  dayChipText: {
+    fontSize: Typography.size.sm,
+    fontWeight: Typography.weight.semibold,
+    color: Colors.text.secondary,
+  },
+  dayChipTextSelected: {
+    color: Colors.text.inverse,
   },
   formError: {
     color: Colors.danger.DEFAULT,

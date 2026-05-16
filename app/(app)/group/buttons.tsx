@@ -14,12 +14,14 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '@/components/ui/Card';
 import { ReportButtonEditor } from '@/components/features/ReportButtonEditor';
+import * as Notifications from 'expo-notifications';
 import { getGroupButtons, deactivateButton } from '@/services/supabase/reportButtons';
 import { useGroupStore } from '@/store/groupStore';
 import { DBReportButton } from '@/types/database';
 import { Colors, Typography, Spacing, Radius } from '@/constants/theme';
 import { STRINGS } from '@/constants/strings';
 import { CONFIG } from '@/constants/config';
+import { formatActiveDays } from '@/utils/formatDays';
 
 export default function GroupButtonsScreen() {
   const scheme = useColorScheme();
@@ -51,6 +53,16 @@ export default function GroupButtonsScreen() {
     setEditorTarget(undefined);
   }
 
+  async function cancelRemindersForButton(buttonId: string) {
+    const ids = [
+      `report-btn-${buttonId}`,
+      ...[0, 1, 2, 3, 4, 5, 6].map((d) => `report-btn-${buttonId}-d${d}`),
+    ];
+    await Promise.all(ids.map((id) =>
+      Notifications.cancelScheduledNotificationAsync(id).catch(() => {}),
+    ));
+  }
+
   function handleDelete(btn: DBReportButton) {
     Alert.alert(
       STRINGS.REPORT_BUTTONS.DELETE_CONFIRM_TITLE,
@@ -62,6 +74,7 @@ export default function GroupButtonsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              await cancelRemindersForButton(btn.id);
               await deactivateButton(btn.id);
               setButtons((prev) => prev.filter((b) => b.id !== btn.id));
             } catch {
@@ -140,7 +153,7 @@ export default function GroupButtonsScreen() {
                     )}
                   </View>
                   <Text style={[styles.timeInfo, { color: secondaryColor }]}>
-                    {btn.activation_time.slice(0, 5)} · {btn.window_minutes} min · orden {btn.sort_order}
+                    {btn.activation_time.slice(0, 5)} · {btn.window_minutes} min · {formatActiveDays(btn.active_days ?? [0,1,2,3,4,5,6])}
                   </Text>
                 </View>
 

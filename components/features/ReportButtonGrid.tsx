@@ -30,6 +30,7 @@ export function ReportButtonGrid({ buttons, onPress, isLoading }: ReportButtonGr
         const isActive = btn.status === 'active';
         const isCompleted = btn.status === 'completed';
         const isUpcoming = btn.status === 'upcoming';
+        const isDayInactive = btn.status === 'day_inactive';
 
         return (
           <TouchableOpacity
@@ -39,6 +40,7 @@ export function ReportButtonGrid({ buttons, onPress, isLoading }: ReportButtonGr
               isActive && styles.buttonActive,
               isCompleted && styles.buttonCompleted,
               (isUpcoming || btn.status === 'expired') && styles.buttonDisabled,
+              isDayInactive && styles.buttonDayInactive,
             ]}
             onPress={() => onPress(btn)}
             disabled={!isActive}
@@ -50,7 +52,7 @@ export function ReportButtonGrid({ buttons, onPress, isLoading }: ReportButtonGr
             {btn.is_home_button && (
               <View style={styles.homeBadge}>
                 <Ionicons
-                  name="home"
+                  name="navigate"
                   size={10}
                   color={isActive ? Colors.text.inverse : Colors.neutral[400]}
                 />
@@ -61,6 +63,13 @@ export function ReportButtonGrid({ buttons, onPress, isLoading }: ReportButtonGr
             {isCompleted && (
               <View style={styles.completedBadge}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.success.DEFAULT} />
+              </View>
+            )}
+
+            {/* Day-inactive calendar badge */}
+            {isDayInactive && (
+              <View style={styles.dayInactiveBadge}>
+                <Ionicons name="calendar-outline" size={12} color={Colors.neutral[400]} />
               </View>
             )}
 
@@ -90,6 +99,10 @@ export function ReportButtonGrid({ buttons, onPress, isLoading }: ReportButtonGr
 
             {btn.status === 'expired' && (
               <Text style={styles.timeLabel}>{STRINGS.REPORT_BUTTONS.WINDOW_CLOSED}</Text>
+            )}
+
+            {isDayInactive && (
+              <Text style={styles.timeLabel}>{STRINGS.REPORT_BUTTONS.DAY_INACTIVE}</Text>
             )}
           </TouchableOpacity>
         );
@@ -124,6 +137,17 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  buttonDayInactive: {
+    opacity: 0.55,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Colors.neutral[300],
+  },
+  dayInactiveBadge: {
+    position: 'absolute',
+    top: Spacing[2],
+    right: Spacing[2],
   },
   skeleton: {
     backgroundColor: Colors.neutral[200],

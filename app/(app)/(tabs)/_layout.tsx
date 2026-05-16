@@ -24,9 +24,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Jornada',
-          tabBarIcon: ({ color, size }) => <Ionicons name="play-circle" size={size} color={color} />,
-          tabBarAccessibilityLabel: 'Tab Jornada',
+          title: 'Home',
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+          tabBarAccessibilityLabel: 'Tab Home',
         }}
       />
       <Tabs.Screen

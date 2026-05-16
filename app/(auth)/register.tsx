@@ -41,9 +41,11 @@ export default function RegisterScreen() {
     setIsLoading(true);
     try {
       await register(email.trim(), password, fullName.trim());
-      Alert.alert('¡Cuenta creada!', 'Revisa tu correo para confirmar tu cuenta.', [
-        { text: 'OK', onPress: () => router.replace('/(auth)/login') },
-      ]);
+      Alert.alert(
+        STRINGS.AUTH.REGISTER_SUCCESS_TITLE,
+        STRINGS.AUTH.REGISTER_SUCCESS_BODY,
+        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+      );
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : STRINGS.ERRORS.GENERIC);
     } finally {

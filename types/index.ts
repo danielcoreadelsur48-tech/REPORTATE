@@ -31,8 +31,37 @@ export interface ActiveSOS {
 }
 
 export interface ReportButtonWithState extends DBReportButton {
-  status: 'upcoming' | 'active' | 'completed' | 'expired';
+  status: 'upcoming' | 'active' | 'completed' | 'expired' | 'day_inactive';
   windowStart: Date;
   windowEnd: Date;
   pressedAt: string | null;   // ISO string if pressed in this window, else null
+}
+
+export interface DayActivityItem {
+  id: string;
+  userId: string;
+  userFullName: string;
+  userAvatarUrl: string | null;
+  buttonName: string;
+  buttonIcon: string;
+  createdAt: string;
+  location: { lat: number; lng: number } | null;
+}
+
+export interface DaySOSItem {
+  id: string;
+  userId: string;
+  userFullName: string;
+  userAvatarUrl: string | null;
+  status: 'active' | 'resolved';
+  activatedAt: string;
+  resolvedAt: string | null;
+  location: { lat: number; lng: number } | null;
+}
+
+export interface PendingMember {
+  userId: string;
+  fullName: string;
+  avatarUrl: string | null;
+  role: 'captain' | 'member';
 }

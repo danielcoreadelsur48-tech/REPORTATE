@@ -64,7 +64,8 @@ export type NotificationType =
   | 'ABSENCE_ALERT'
   | 'SOS_ACTIVATED'
   | 'SOS_RESOLVED'
-  | 'CUSTOM_REPORT';
+  | 'CUSTOM_REPORT'
+  | 'HOME_ARRIVAL';
 
 // ── Report Buttons ───────────────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ export interface DBReportButton {
   is_home_button: boolean;
   sort_order: number;
   is_active: boolean;
+  active_days: number[];     // JS day-of-week numbers: 0=Sun … 6=Sat
   created_at: string;
 }
 
@@ -90,5 +92,13 @@ export interface DBCustomReport {
   window_date: string;       // "YYYY-MM-DD"
   activation_time: string;   // "HH:MM:SS"
   window_minutes: number;
+  created_at: string;
+}
+
+export interface DBHomeArrival {
+  id: string;
+  user_id: string;
+  group_id: string;
+  location: string | null;
   created_at: string;
 }

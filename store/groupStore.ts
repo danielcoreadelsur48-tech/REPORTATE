@@ -18,7 +18,7 @@ export const useGroupStore = create<GroupState>((set) => ({
   groups: [],
   activeGroupId: null,
   members: [],
-  isLoadingGroups: false,
+  isLoadingGroups: true,
   isLoadingMembers: false,
   setGroups: (groups) => set({ groups }),
   setActiveGroupId: (activeGroupId) => set({ activeGroupId }),

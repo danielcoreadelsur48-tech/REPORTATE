@@ -48,7 +48,10 @@ export function useAuth() {
   }, []);
 
   async function login(email: string, password: string) {
-    await signIn(email, password);
+    const data = await signIn(email, password);
+    if (data?.session) {
+      setSession(data.session);
+    }
   }
 
   async function register(email: string, password: string, fullName: string) {

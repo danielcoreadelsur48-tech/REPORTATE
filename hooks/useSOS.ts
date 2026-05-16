@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LocationSubscription } from 'expo-location';
 import { useSOSStore } from '@/store/sosStore';
 import { useAuthStore } from '@/store/authStore';
+import { useGroupStore } from '@/store/groupStore';
 import { activateSOS, resolveSOS, updateSOSLocation } from '@/services/supabase/sos';
 import { getCurrentLocation, watchLocation, requestLocationPermission } from '@/services/location/getCurrentLocation';
 import { sendGroupNotification } from '@/services/notifications/sendNotification';
@@ -11,6 +12,7 @@ import { STRINGS } from '@/constants/strings';
 export function useSOS() {
   const { isActive, sosId, groupId, activate, deactivate } = useSOSStore();
   const { user } = useAuthStore();
+  const { groups } = useGroupStore();
   const locationWatcher = useRef<LocationSubscription | null>(null);
 
   const triggerSOS = useCallback(async (targetGroupId: string) => {
@@ -32,13 +34,13 @@ export function useSOS() {
       () => {},
     );
 
-    await sendGroupNotification({
-      groupId: targetGroupId,
+    await Promise.all(groups.map((g) => sendGroupNotification({
+      groupId: g.id,
       type: 'SOS_ACTIVATED',
       title: '🆘 Emergencia SOS',
       body: STRINGS.NOTIFICATIONS.SOS_ACTIVATED.replace('{name}', user.full_name),
-      data: { sosId: sos.id },
-    });
+      data: { sosId: sos.id, lat: location.lat, lng: location.lng },
+    })));
   }, [user]);
 
   const cancelSOS = useCallback(async () => {
@@ -50,12 +52,12 @@ export function useSOS() {
     await resolveSOS(sosId);
     deactivate();
 
-    await sendGroupNotification({
-      groupId,
+    await Promise.all(groups.map((g) => sendGroupNotification({
+      groupId: g.id,
       type: 'SOS_RESOLVED',
       title: 'SOS desactivado',
       body: STRINGS.NOTIFICATIONS.SOS_RESOLVED.replace('{name}', user.full_name),
-    });
+    })));
   }, [sosId, groupId, user]);
 
   return { isActive, triggerSOS, cancelSOS };
