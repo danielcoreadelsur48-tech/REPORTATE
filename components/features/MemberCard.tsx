@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Avatar } from '@/components/ui/Avatar';
 import { Badge } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
@@ -10,9 +11,10 @@ import { formatTime } from '@/utils/formatDate';
 
 interface MemberCardProps {
   member: MemberWithStatus;
+  onPromote?: () => void;
 }
 
-export function MemberCard({ member }: MemberCardProps) {
+export function MemberCard({ member, onPromote }: MemberCardProps) {
   const statusConfig = {
     ended: { label: STRINGS.GROUP.STATUS_ENDED, variant: 'success' as const },
     started: { label: STRINGS.GROUP.STATUS_ACTIVE, variant: 'primary' as const },
@@ -27,6 +29,11 @@ export function MemberCard({ member }: MemberCardProps) {
           <Text style={styles.name} numberOfLines={1}>{member.full_name}</Text>
           {member.role === 'captain' && (
             <Badge label={STRINGS.GROUP.CAPTAIN_BADGE} variant="primary" />
+          )}
+          {onPromote && (
+            <TouchableOpacity onPress={onPromote} accessibilityLabel="Promover a capitán" hitSlop={8}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={Colors.primary[500]} />
+            </TouchableOpacity>
           )}
         </View>
         <View style={styles.statusRow}>

@@ -18,11 +18,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { validateEmail } from '@/utils/validateEmail';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { session, login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (session) {
+      router.replace('/(app)/(tabs)/home');
+    }
+  }, [session]);
 
   function validate(): boolean {
     const e: typeof errors = {};
@@ -38,7 +44,6 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       await login(email.trim(), password);
-      router.replace('/(app)/(tabs)/home');
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : STRINGS.ERRORS.GENERIC);
     } finally {

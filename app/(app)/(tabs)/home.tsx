@@ -79,13 +79,22 @@ export default function HomeScreen() {
       try {
         await insertHomeArrival({ userId: user.id, groupId: activeGroupId, location: loc });
       } catch { /* continuar aunque falle el registro */ }
-      await sendGroupNotification({
-        groupId: activeGroupId,
-        type: 'HOME_ARRIVAL',
-        title: STRINGS.HOME_BUTTON.NOTIFICATION_TITLE,
-        body: STRINGS.HOME_BUTTON.NOTIFICATION_BODY.replace('{name}', user.full_name),
-        data: loc ? { lat: loc.lat, lng: loc.lng } : undefined,
-      });
+      await Promise.all([
+        sendGroupNotification({
+          groupId: activeGroupId,
+          type: 'HOME_ARRIVAL',
+          title: STRINGS.HOME_BUTTON.NOTIFICATION_TITLE,
+          body: STRINGS.HOME_BUTTON.NOTIFICATION_BODY.replace('{name}', user.full_name),
+        }),
+        loc && sendGroupNotification({
+          groupId: activeGroupId,
+          type: 'HOME_ARRIVAL',
+          title: STRINGS.HOME_BUTTON.NOTIFICATION_TITLE,
+          body: STRINGS.HOME_BUTTON.NOTIFICATION_BODY.replace('{name}', user.full_name),
+          data: { lat: loc.lat, lng: loc.lng },
+          recipientRole: 'captain',
+        }),
+      ].filter(Boolean));
       Alert.alert(STRINGS.HOME_BUTTON.SUCCESS_TITLE, STRINGS.HOME_BUTTON.SUCCESS_BODY);
     } catch {
       Alert.alert('Error', STRINGS.ERRORS.GENERIC);

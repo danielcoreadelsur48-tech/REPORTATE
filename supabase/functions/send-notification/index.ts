@@ -9,6 +9,7 @@ interface Payload {
   title: string;
   body: string;
   data?: Record<string, unknown>;
+  recipientRole?: 'captain' | 'member';
 }
 
 serve(async (req) => {
@@ -24,10 +25,16 @@ serve(async (req) => {
   const payload: Payload = await req.json();
   const { groupId, title, body, data } = payload;
 
-  const { data: members, error } = await supabase
+  let query = supabase
     .from('group_members')
     .select('users(expo_push_token)')
     .eq('group_id', groupId);
+
+  if (payload.recipientRole) {
+    query = query.eq('role', payload.recipientRole);
+  }
+
+  const { data: members, error } = await query;
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {

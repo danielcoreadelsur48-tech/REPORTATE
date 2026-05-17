@@ -7,6 +7,7 @@ interface SendNotificationPayload {
   title: string;
   body: string;
   data?: Record<string, unknown>;
+  recipientRole?: 'captain' | 'member';
 }
 
 export async function sendGroupNotification(payload: SendNotificationPayload): Promise<void> {

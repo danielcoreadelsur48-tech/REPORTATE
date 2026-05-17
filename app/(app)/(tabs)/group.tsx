@@ -7,6 +7,7 @@ import {
   useColorScheme,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -30,7 +31,7 @@ export default function GroupScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const { user } = useAuthStore();
-  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers } = useGroup();
+  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers, promoteMember } = useGroup();
   const [showActivity, setShowActivity] = useState(false);
   const [hasNewActivity, setHasNewActivity] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -101,6 +102,26 @@ export default function GroupScreen() {
       badgeChannelRef.current = null;
     };
   }, [activeGroupId]);
+
+  function handlePromote(member: (typeof members)[0]) {
+    Alert.alert(
+      'Promover a capitán',
+      `¿Nombrar a ${member.full_name} como capitán del grupo?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Promover',
+          onPress: async () => {
+            try {
+              await promoteMember(activeGroupId!, member.user_id);
+            } catch {
+              Alert.alert('Error', STRINGS.ERRORS.GENERIC);
+            }
+          },
+        },
+      ],
+    );
+  }
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -220,7 +241,16 @@ export default function GroupScreen() {
         <FlatList
           data={members}
           keyExtractor={(m) => m.user_id}
-          renderItem={({ item }) => <MemberCard member={item} />}
+          renderItem={({ item }) => (
+            <MemberCard
+              member={item}
+              onPromote={
+                isCaptain && item.role !== 'captain'
+                  ? () => handlePromote(item)
+                  : undefined
+              }
+            />
+          )}
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <EmptyState icon="people-outline" title={STRINGS.GROUP.NO_MEMBERS} />

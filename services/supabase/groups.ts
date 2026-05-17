@@ -166,6 +166,19 @@ export async function getGroupById(groupId: string): Promise<DBGroup | null> {
   return data as DBGroup;
 }
 
+export async function updateMemberRole(
+  groupId: string,
+  userId: string,
+  role: 'captain' | 'member',
+): Promise<void> {
+  const { error } = await supabase
+    .from('group_members')
+    .update({ role })
+    .eq('group_id', groupId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
 export async function deleteGroup(groupId: string): Promise<void> {
   const { error } = await supabase
     .from('groups')

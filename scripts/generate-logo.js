@@ -70,6 +70,13 @@ function splashSvg(w, h) {
     font-weight="400"
     fill="#A5C0F3"
     text-anchor="middle">Control de presencia y seguridad grupal</text>
+  <text
+    x="${w / 2}" y="${Math.round(h * 0.96)}"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="44"
+    font-weight="400"
+    fill="#7A9DD4"
+    text-anchor="middle">© Todos los derechos reservados. Leonardo Ramos.</text>
 </svg>`;
 }
 
