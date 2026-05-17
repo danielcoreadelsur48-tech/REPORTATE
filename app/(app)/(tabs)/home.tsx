@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
+  Image,
   ScrollView,
   StyleSheet,
   useColorScheme,
@@ -107,9 +108,12 @@ export default function HomeScreen() {
           />
         }
       >
-        <View style={styles.greeting}>
-          <Text style={[styles.hello, { color: subtextColor }]}>Hola,</Text>
-          <Text style={[styles.name, { color: textColor }]}>{user?.full_name ?? '...'}</Text>
+        <View style={styles.headerRow}>
+          <View style={styles.greeting}>
+            <Text style={[styles.hello, { color: subtextColor }]}>Hola,</Text>
+            <Text style={[styles.name, { color: textColor }]}>{user?.full_name ?? '...'}</Text>
+          </View>
+          <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
         </View>
 
         {isLoadingGroups && groups.length === 0 ? (
@@ -205,7 +209,14 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1 },
   scroll: { padding: Spacing[5], paddingBottom: 128, gap: Spacing[5], flexGrow: 1 },
-  greeting: { marginBottom: Spacing[2] },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing[2],
+  },
+  greeting: { flex: 1 },
+  logo: { width: 44, height: 44, borderRadius: Radius.lg },
   hello: { fontSize: Typography.size.base },
   name: { fontSize: Typography.size['2xl'], fontWeight: Typography.weight.bold },
   groupSelectorBtn: {

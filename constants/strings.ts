@@ -70,7 +70,7 @@ export const STRINGS = {
   },
   SOS: {
     TITLE: 'SOS Emergencia',
-    SUBTITLE: 'Activa esta alerta solo en caso de emergencia real',
+    SUBTITLE: 'Activa esta alerta solo en caso de emergencia real. Se notificará a todos los usuarios de todos tus grupos.',
     BUTTON_LABEL: 'EMERGENCIA',
     CONFIRM_TITLE: '¿Activar alerta SOS?',
     CONFIRM_BODY: 'Se notificará a todos los miembros de tu grupo con tu ubicación en tiempo real.',

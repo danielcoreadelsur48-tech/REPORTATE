@@ -97,6 +97,8 @@ export default function LoginScreen() {
             <Text style={styles.link}>{STRINGS.AUTH.REGISTER_LINK}</Text>
           </TouchableOpacity>
         </View>
+
+        <Text style={styles.copyright}>© Todos los derechos reservados. Leonardo Ramos.</Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -144,5 +146,11 @@ const styles = StyleSheet.create({
     color: Colors.primary[500],
     fontSize: Typography.size.sm,
     fontWeight: Typography.weight.semibold,
+  },
+  copyright: {
+    marginTop: Spacing[6],
+    textAlign: 'center',
+    fontSize: 11,
+    color: Colors.neutral[400],
   },
 });
