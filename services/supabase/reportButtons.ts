@@ -158,7 +158,7 @@ export async function getMembersWithoutCustomReport(groupId: string): Promise<Pe
   const [membersResult, reportersResult] = await Promise.all([
     supabase
       .from('group_members')
-      .select('user_id, role, users(full_name, avatar_url)')
+      .select('user_id, role, users!user_id(full_name, avatar_url)')
       .eq('group_id', groupId),
     supabase
       .from('custom_reports')
