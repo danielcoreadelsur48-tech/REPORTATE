@@ -115,23 +115,26 @@ REPÓRTATE/
 │   │   ├── _layout.tsx               # Layout sin tabs, fondo de marca
 │   │   ├── login.tsx                 # Pantalla de inicio de sesión
 │   │   ├── register.tsx              # Registro de nuevo usuario
-│   │   └── forgot-password.tsx       # Recuperación de contraseña
+│   │   ├── forgot-password.tsx       # Recuperación de contraseña
+│   │   └── verify-email.tsx          # Pantalla de éxito post-verificación de email
 │   │
 │   └── (app)/                        # Rutas protegidas (requieren sesión)
 │       ├── _layout.tsx               # Verifica sesión; redirige a (auth) si no hay
 │       │
 │       ├── (tabs)/                   # Navegación principal por tabs
 │       │   ├── _layout.tsx           # Configuración de tabs (iconos, labels)
-│       │   ├── home.tsx              # Dashboard: botones de jornada, estado del grupo
-│       │   ├── group.tsx             # Vista de miembros y estado del grupo
+│       │   ├── home.tsx              # Dashboard: botones de reporte, llegada a casa, SOS
+│       │   ├── group.tsx             # Vista de miembros, actividad del día, botones de reporte
 │       │   ├── sos.tsx               # Tab SOS (o botón flotante global)
 │       │   └── profile.tsx           # Perfil del usuario, logout
 │       │
 │       └── group/
 │           ├── [id].tsx              # Detalle de un grupo específico
-│           ├── create.tsx            # Crear nuevo grupo (solo captains)
-│           ├── invite.tsx            # Generar/compartir invitación
-│           └── members.tsx           # Gestión de miembros (solo captains)
+│           ├── create.tsx            # Crear nuevo grupo (solo capitanes)
+│           ├── join.tsx              # Unirse por código de 6 caracteres
+│           ├── buttons.tsx           # Gestión de botones de reporte (capitán)
+│           ├── invite.tsx            # Generar/compartir invitación ⏳ pendiente
+│           └── members.tsx           # Gestión de miembros (solo capitanes)
 │
 ├── components/
 │   ├── ui/                           # Átomos reutilizables
@@ -145,23 +148,27 @@ REPÓRTATE/
 │   │   └── EmptyState.tsx            # Estado vacío con ilustración y CTA
 │   │
 │   └── features/                     # Componentes de dominio
-│       ├── JourneyButton.tsx         # Botón de inicio/fin de jornada (removido de home.tsx)
+│       ├── JourneyButton.tsx         # Botón inicio/fin jornada (removido de home.tsx)
 │       ├── SOSButton.tsx             # Botón SOS con animación de pulso
-│       ├── SOSConfirmModal.tsx       # Modal de confirmación con cuenta regresiva
+│       ├── SOSConfirmModal.tsx       # Modal de confirmación con cuenta regresiva (5 s)
 │       ├── MemberCard.tsx            # Tarjeta de miembro con estado de jornada
 │       ├── GroupHeader.tsx           # Encabezado de grupo con info y acciones
 │       ├── AbsenceAlertModal.tsx     # Modal para enviar alerta de ausencia
-│       ├── ReportButtonGrid.tsx      # Grilla de botones de reporte personalizados
-│       └── ReportButtonEditor.tsx    # Formulario de creación/edición de botones (capitán)
+│       ├── ReportButtonGrid.tsx      # Grilla de botones de reporte (estado day_inactive incluido)
+│       ├── ReportButtonEditor.tsx    # Formulario creación/edición de botones con selector de días
+│       ├── GroupPickerSheet.tsx      # Bottom sheet para cambiar grupo activo
+│       ├── GroupDeleteSheet.tsx      # Bottom sheet 2 etapas para eliminar grupo (capitán)
+│       ├── DayActivitySheet.tsx      # Bottom sheet actividad diaria (Reportes/Emergencias/Pending) con Realtime
+│       └── HomeArrivalButton.tsx     # Botón circular "Llegada a casa" con GPS
 │
 ├── hooks/
 │   ├── useAuth.ts                    # Estado de sesión, login, logout, registro
 │   ├── useGroup.ts                   # CRUD de grupo, membresía
 │   ├── useJourney.ts                 # Lógica de botones 1 y 2, estado del día
-│   ├── useSOS.ts                     # Activación, tracking y desactivación de SOS
-│   ├── useNotifications.ts           # Registro de token, permisos, listeners
+│   ├── useSOS.ts                     # Activación, tracking y desactivación de SOS (todos los grupos)
+│   ├── useNotifications.ts           # Registro de token, permisos, listeners, canal Android
 │   ├── useLocation.ts               # Solicitud de permisos GPS y obtención de coordenadas
-│   └── useReportButtons.ts          # Estado, press, recordatorios de botones de reporte
+│   └── useReportButtons.ts          # Estado, press, recordatorios, días activos
 │
 ├── store/
 │   ├── authStore.ts                  # Usuario actual, token de sesión (Zustand)
@@ -197,6 +204,8 @@ REPÓRTATE/
 ├── utils/
 │   ├── formatDate.ts                 # Formateo de fechas y timestamps
 │   ├── validateEmail.ts              # Validación de email
+│   ├── formatDays.ts                 # WEEK_DAYS, formatActiveDays(), isTodayActive()
+│   └── parseWKB.ts                   # Parser EWKB hex para coordenadas PostGIS
 │   └── groupByDay.ts                 # Agrupar reports por día calendario
 │
 ├── assets/
@@ -471,62 +480,120 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 
 ---
 
-## Estado Actual del Proyecto (2026-05-10)
+## Estado Actual del Proyecto (2026-05-17)
 
 ### Infraestructura
 - **Supabase project**: `msokvacqoptnanyamyoc` (plan free, org "Noland")
 - **EAS project**: `@noland4/reportate` — projectId `fb2b163c-997b-4b32-85fb-dd1ad93c6865`
-- **Firebase project**: `reportate-55667` — `google-services.json` en raíz del proyecto
+- **Firebase project**: `reportate-prod` — `google-services.json` en raíz (NO al repo)
 
 ### Build activo
-- Perfil `development` (APK con `expo-dev-client`, `distribution: internal`)
-- Comando: `eas build --profile development --platform android`
-- Para conectar al Metro local: `npx expo start --dev-client` (mismo WiFi) o `--tunnel` (cualquier red)
-- Push notifications **no** dependen del WiFi — llegan por internet
+- Perfil `preview` (APK standalone, sin dev client, sin Metro)
+- Comando: `eas build --platform android --profile preview`
+- Push notifications **no** dependen del WiFi — llegan por internet (FCM → Expo → dispositivo)
+- OTA updates configurado (`expo-updates` + EAS Update)
 
 ### Funcionalidades implementadas ✓
-- Autenticación (login, registro, logout, sesión persistente)
-- Crear y eliminar grupos (solo capitanes)
-- Botones de reporte personalizados (crear, grilla, press, notificación grupal, recordatorio local)
-- Botón SOS (activación con confirmación, tracking GPS, notificación a todos los miembros)
+- Autenticación: login, registro, logout, sesión persistente
+- **Verificación de email**: `signUp` incluye `emailRedirectTo: 'reportate://verify-email'`; pantalla `app/(auth)/verify-email.tsx` con diseño de éxito (checkmark verde)
+- Crear y eliminar grupos (solo capitanes); `GroupPickerSheet` para cambiar grupo activo; `GroupDeleteSheet` con confirmación 2 etapas
+- Unirse a grupo por código de 6 caracteres (`app/(app)/group/join.tsx`)
+- Botones de reporte personalizados: crear, grilla, press con notificación grupal, recordatorio local, **días activos por botón** (`active_days int[]`, selector L–D, estado `day_inactive`)
+- Botón SOS: activación con confirmación (5 s countdown), tracking GPS, notifica **todos los grupos** del usuario (no solo el activo); incluye coords GPS en payload
+- Botón "Llegada a casa" en home: GPS + notificación grupal, graba en tabla `home_arrivals`
+- Panel de actividad diaria (`DayActivitySheet`): bottom sheet 3 pestañas (Reportes / Emergencias / Sin reportar), Realtime, badge de unread
 - Edge Function `send-notification` desplegada
 
 ### Funcionalidades pendientes
-- Invitaciones (generar token, unirse por código)
-- Alerta de ausencia (función de capitán)
+- Invitaciones: generar código para capitanes (`app/(app)/group/invite.tsx`) — pantalla `join.tsx` ya existe
+- Alerta de ausencia (función de capitán — lógica existe en `group.tsx`)
 - Vista de ubicación de miembros en fin de jornada (solo capitanes)
+
+### Esquema DB adicional — tablas nuevas
+#### `report_buttons`
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `group_id` | `uuid` | FK → `groups.id` |
+| `name` | `text` | Nombre visible |
+| `icon` | `text` | Nombre de Ionicon |
+| `activation_hour` | `int` | Hora de activación (0–23) |
+| `activation_minute` | `int` | Minuto de activación |
+| `window_minutes` | `int` | Duración ventana activa |
+| `is_home_button` | `bool` | Captura GPS al pulsar |
+| `sort_order` | `int` | Orden en la grilla (1–5) |
+| `active_days` | `int[]` | Días JS activos (0=Dom … 6=Sáb); DEFAULT todos |
+| `created_by` | `uuid` | FK → `users.id` |
+
+#### `custom_reports`
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `button_id` | `uuid` | FK → `report_buttons.id` |
+| `user_id` | `uuid` | FK → `users.id` |
+| `group_id` | `uuid` | FK → `groups.id` |
+| `location` | `geography(POINT, 4326)` | Solo si `is_home_button` |
+| `created_at` | `timestamptz` | |
+
+#### `home_arrivals`
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `user_id` | `uuid` | FK → `users.id` |
+| `group_id` | `uuid` | FK → `groups.id` |
+| `location` | `geography(POINT, 4326)` | GPS al pulsar |
+| `report_date` | `date` | Fecha local del reporte |
+| `created_at` | `timestamptz` | |
 
 ### Migraciones
 - ✓ `001_initial_schema.sql`
 - ✓ `002_add_group_delete_policy.sql`
-- ⏳ `003_fix_invitation_policies.sql` — pendiente de aplicar
-- ⏳ `004_report_buttons.sql` — pendiente de aplicar
+- ⏳ `003_fix_invitation_policies.sql` — pendiente de verificar/aplicar
+- ⏳ `004_report_buttons.sql` — pendiente de verificar/aplicar
+- ✓ `005_add_active_days.sql`
+- ✓ `006_group_members_read_custom_reports.sql`
+- ✓ `007_users_group_members_read.sql` — CRÍTICA: permite ver nombres/avatares de compañeros
+- ✓ `008_realtime_custom_reports.sql`
+- ✓ `009_allow_multiple_gps_buttons.sql`
+- ✓ `010_home_arrivals.sql`
 
 ### Bugs resueltos críticos
 | Bug | Síntoma | Fix |
 |---|---|---|
-| `getExpoPushTokenAsync` sin `projectId` | Tokens `null` en DB, ninguna notificación llega | `registerToken.ts`: pasar `{ projectId: Constants.expoConfig.extra.eas.projectId }` |
-| Sin `google-services.json` | FCM no funciona en APK de EAS | Agregar archivo + `googleServicesFile` en `app.json` |
-| RLS `auth.uid()` en policies | INSERT fallaba en groups, reports, sos_events | Usar `(select auth.uid())` en todas las policies |
+| `getExpoPushTokenAsync` sin `projectId` | Tokens `null` en DB | `registerToken.ts`: pasar `{ projectId: Constants.expoConfig.extra.eas.projectId }` |
+| Sin `google-services.json` | FCM no funciona en EAS | Agregar archivo + `googleServicesFile` en `app.json` |
+| RLS `auth.uid()` en policies | INSERT fallaba | Usar `(select auth.uid())` en todas las policies |
 | Invalid Refresh Token en hot reload | Error silencioso en dev | Detectar `TOKEN_REFRESHED` sin sesión en `onAuthStateChange` y llamar `clear()` |
+| `Legacy API keys are disabled` | Login roto tras migración Supabase | Actualizar `EXPO_PUBLIC_SUPABASE_ANON_KEY` a publishable key (`sb_publishable_...`) |
+| Ghost notifications (botones eliminados) | Recordatorios llegaban de botones borrados | Cancelar los 8 IDs posibles por botón; fix stale closure con `rawButtonsRef` |
+| PostGIS WKB hex en `location` | Coordenadas no parseables desde JS | `utils/parseWKB.ts` — parser EWKB compartido |
+| Flash de empty state en home | `isLoadingGroups` iniciaba en `false` | `groupStore.ts`: inicializar `isLoading: true` |
+| Verificación de email sin pantalla | Redirigía a URL rota del dashboard | `emailRedirectTo: 'reportate://verify-email'` + pantalla `verify-email.tsx` |
 
 ### Cuentas de usuario en DB
 - `e5073812...` → dineroleo8@gmail.com ("Daniel Ramos")
 - `24ed50f3...` → dineroleoayd48@gmail.com ("daniel") ← cuenta activa en el teléfono
 
+### Notas operativas Supabase
+- Rate limit de emails: 3/hora en plan free. Para desarrollo, desactivar "Confirm email" en Auth → Providers → Email
+- `Service role key` bloqueada desde entornos externos — usar SQL Editor del dashboard para queries admin
+- Para ver emails de usuarios: `SELECT u.full_name, a.email FROM public.users u JOIN auth.users a ON a.id = u.id`
+- Variables de entorno EAS están en environment "production" como tipo "secret" — tienen prioridad sobre `.env` local
+- Para cambiar clave: `eas env:update production --variable-name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "clave" --visibility secret --non-interactive`
+
 ### Comandos clave
 ```bash
-# Rebuild APK de desarrollo
-eas build --profile development --platform android
-
-# Rebuild APK sin dev client (para probar sin Metro)
-eas build --profile preview --platform android
+# Nuevo build APK standalone
+eas build --platform android --profile preview
 
 # Desplegar Edge Function
 SUPABASE_ACCESS_TOKEN=<token> npx supabase functions deploy send-notification --project-ref msokvacqoptnanyamyoc
 
-# Recargar caché PostgREST (en SQL Editor de Supabase)
+# Recargar caché PostgREST (ejecutar en SQL Editor de Supabase)
 NOTIFY pgrst, 'reload schema';
+
+# SQL via Management API (desde Node.js con config.js en raíz)
+node -e "const {ACCESS_TOKEN,PROJECT_REF}=require('./config.js'); fetch('https://api.supabase.com/v1/projects/'+PROJECT_REF+'/database/query',{method:'POST',headers:{'Authorization':'Bearer '+ACCESS_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({query:'SELECT 1'})}).then(r=>r.json()).then(console.log)"
 ```
 
 ---
