@@ -27,7 +27,7 @@ serve(async (req) => {
 
   let query = supabase
     .from('group_members')
-    .select('users(expo_push_token)')
+    .select('users!user_id(expo_push_token)')
     .eq('group_id', groupId);
 
   if (payload.recipientRole) {

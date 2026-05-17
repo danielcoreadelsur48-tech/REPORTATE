@@ -41,13 +41,7 @@ function adaptiveSvg(size) {
 
 function splashSvg(w, h) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <defs>
-    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#1A56DB"/>
-      <stop offset="100%" stop-color="#0F2266"/>
-    </linearGradient>
-  </defs>
-  <rect width="${w}" height="${h}" fill="url(#bg)"/>
+  <rect width="${w}" height="${h}" fill="#1A56DB"/>
   <text
     x="${w / 2}" y="${Math.round(h * 0.44)}"
     font-family="Arial Black, Arial, Helvetica, sans-serif"

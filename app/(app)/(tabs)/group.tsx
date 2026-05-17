@@ -147,8 +147,11 @@ export default function GroupScreen() {
 
   async function handleRefresh() {
     setRefreshing(true);
-    if (activeGroupId) await loadMembers(activeGroupId);
-    setRefreshing(false);
+    try {
+      if (activeGroupId) await loadMembers(activeGroupId);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   function handleOpenActivity() {

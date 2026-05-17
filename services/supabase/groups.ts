@@ -121,7 +121,7 @@ export async function getGroupMembers(groupId: string): Promise<MemberWithStatus
     .select(`
       user_id,
       role,
-      users (full_name, avatar_url)
+      users!user_id (full_name, avatar_url)
     `)
     .eq('group_id', groupId);
 
