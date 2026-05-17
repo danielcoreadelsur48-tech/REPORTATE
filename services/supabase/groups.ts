@@ -7,7 +7,7 @@ export async function getUserGroups(userId: string): Promise<GroupWithRole[]> {
     .from('group_members')
     .select(`
       role,
-      groups (id, name, description, avatar_url)
+      groups (id, name, description, avatar_url, created_by)
     `)
     .eq('user_id', userId);
 
@@ -26,6 +26,7 @@ export async function getUserGroups(userId: string): Promise<GroupWithRole[]> {
       name: g.name,
       description: g.description,
       avatar_url: g.avatar_url,
+      created_by: g.created_by,
       role: row.role as 'captain' | 'member',
       memberCount: count ?? 0,
     });
@@ -170,13 +171,21 @@ export async function updateMemberRole(
   groupId: string,
   userId: string,
   role: 'captain' | 'member',
+  promotedBy?: string,
 ): Promise<void> {
+  const update = role === 'captain'
+    ? { role, promoted_by: promotedBy ?? null, promoted_at: new Date().toISOString() }
+    : { role, promoted_by: null, promoted_at: null };
   const { error } = await supabase
     .from('group_members')
-    .update({ role })
+    .update(update)
     .eq('group_id', groupId)
     .eq('user_id', userId);
   if (error) throw error;
+}
+
+export async function revokeMemberRole(groupId: string, userId: string): Promise<void> {
+  await updateMemberRole(groupId, userId, 'member');
 }
 
 export async function deleteGroup(groupId: string): Promise<void> {

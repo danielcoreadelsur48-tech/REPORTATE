@@ -9,6 +9,7 @@ import {
   getGroupMembers,
   deleteGroup,
   updateMemberRole,
+  revokeMemberRole,
 } from '@/services/supabase/groups';
 
 export function useGroup() {
@@ -62,7 +63,12 @@ export function useGroup() {
   }, [user, loadGroups]);
 
   const promoteMember = useCallback(async (groupId: string, userId: string) => {
-    await updateMemberRole(groupId, userId, 'captain');
+    await updateMemberRole(groupId, userId, 'captain', user?.id);
+    await loadMembers(groupId);
+  }, [user, loadMembers]);
+
+  const revokeMember = useCallback(async (groupId: string, userId: string) => {
+    await revokeMemberRole(groupId, userId);
     await loadMembers(groupId);
   }, [loadMembers]);
 
@@ -91,5 +97,6 @@ export function useGroup() {
     joinByCode,
     remove,
     promoteMember,
+    revokeMember,
   };
 }

@@ -18,6 +18,7 @@ export interface GroupWithRole {
   avatar_url: string | null;
   role: 'captain' | 'member';
   memberCount: number;
+  created_by: string;
 }
 
 export interface ActiveSOS {

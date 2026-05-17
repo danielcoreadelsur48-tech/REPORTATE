@@ -31,7 +31,7 @@ export default function GroupScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const { user } = useAuthStore();
-  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers, promoteMember } = useGroup();
+  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers, promoteMember, revokeMember } = useGroup();
   const [showActivity, setShowActivity] = useState(false);
   const [hasNewActivity, setHasNewActivity] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -42,6 +42,7 @@ export default function GroupScreen() {
 
   const textColor = isDark ? Colors.neutral[0] : Colors.text.primary;
   const isCaptain = activeGroup?.role === 'captain';
+  const isCreator = activeGroup?.created_by === user?.id;
 
   useEffect(() => {
     loadGroups();
@@ -103,10 +104,31 @@ export default function GroupScreen() {
     };
   }, [activeGroupId]);
 
+  function handleRevoke(member: (typeof members)[0]) {
+    Alert.alert(
+      'Quitar rol Admin',
+      `¿Quitar el rol de Admin a ${member.full_name}? Pasará a ser Miembro.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Quitar',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await revokeMember(activeGroupId!, member.user_id);
+            } catch {
+              Alert.alert('Error', STRINGS.ERRORS.GENERIC);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   function handlePromote(member: (typeof members)[0]) {
     Alert.alert(
-      'Promover a capitán',
-      `¿Nombrar a ${member.full_name} como capitán del grupo?`,
+      'Promover a Admin',
+      `¿Nombrar a ${member.full_name} como Admin del grupo?`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -244,9 +266,15 @@ export default function GroupScreen() {
           renderItem={({ item }) => (
             <MemberCard
               member={item}
+              isGroupCreator={item.user_id === activeGroup?.created_by}
               onPromote={
                 isCaptain && item.role !== 'captain'
                   ? () => handlePromote(item)
+                  : undefined
+              }
+              onRevoke={
+                isCreator && item.role === 'captain' && item.user_id !== user?.id
+                  ? () => handleRevoke(item)
                   : undefined
               }
             />

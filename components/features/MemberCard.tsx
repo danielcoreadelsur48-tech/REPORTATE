@@ -11,10 +11,12 @@ import { formatTime } from '@/utils/formatDate';
 
 interface MemberCardProps {
   member: MemberWithStatus;
+  isGroupCreator?: boolean;
   onPromote?: () => void;
+  onRevoke?: () => void;
 }
 
-export function MemberCard({ member, onPromote }: MemberCardProps) {
+export function MemberCard({ member, isGroupCreator, onPromote, onRevoke }: MemberCardProps) {
   const statusConfig = {
     ended: { label: STRINGS.GROUP.STATUS_ENDED, variant: 'success' as const },
     started: { label: STRINGS.GROUP.STATUS_ACTIVE, variant: 'primary' as const },
@@ -30,9 +32,17 @@ export function MemberCard({ member, onPromote }: MemberCardProps) {
           {member.role === 'captain' && (
             <Badge label={STRINGS.GROUP.CAPTAIN_BADGE} variant="primary" />
           )}
+          {member.role === 'captain' && isGroupCreator && (
+            <Ionicons name="star" size={14} color={Colors.warning.DEFAULT} />
+          )}
           {onPromote && (
-            <TouchableOpacity onPress={onPromote} accessibilityLabel="Promover a capitán" hitSlop={8}>
+            <TouchableOpacity onPress={onPromote} accessibilityLabel="Promover a Admin" hitSlop={8}>
               <Ionicons name="shield-checkmark-outline" size={20} color={Colors.primary[500]} />
+            </TouchableOpacity>
+          )}
+          {onRevoke && (
+            <TouchableOpacity onPress={onRevoke} accessibilityLabel="Quitar rol Admin" hitSlop={8}>
+              <Ionicons name="shield-remove-outline" size={20} color={Colors.danger.DEFAULT} />
             </TouchableOpacity>
           )}
         </View>

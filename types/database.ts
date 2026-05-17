@@ -23,6 +23,8 @@ export interface DBGroupMember {
   user_id: string;
   role: GroupRole;
   joined_at: string;
+  promoted_by: string | null;
+  promoted_at: string | null;
 }
 
 export interface DBInvitation {
