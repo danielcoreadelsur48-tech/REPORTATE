@@ -7,7 +7,7 @@ export async function getUserGroups(userId: string): Promise<GroupWithRole[]> {
     .from('group_members')
     .select(`
       role,
-      groups (id, name, description, avatar_url, created_by)
+      groups (id, name, description, avatar_url)
     `)
     .eq('user_id', userId);
 
@@ -26,11 +26,22 @@ export async function getUserGroups(userId: string): Promise<GroupWithRole[]> {
       name: g.name,
       description: g.description,
       avatar_url: g.avatar_url,
-      created_by: g.created_by,
+      created_by: '',
       role: row.role as 'captain' | 'member',
       memberCount: count ?? 0,
     });
   }
+
+  if (result.length > 0) {
+    const ids = result.map((g) => g.id);
+    const { data: groupRows } = await supabase
+      .from('groups')
+      .select('id, created_by')
+      .in('id', ids);
+    const creatorMap = new Map((groupRows ?? []).map((r) => [r.id, r.created_by as string]));
+    for (const g of result) g.created_by = creatorMap.get(g.id) ?? '';
+  }
+
   return result;
 }
 
