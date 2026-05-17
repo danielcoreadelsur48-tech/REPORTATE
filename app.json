@@ -45,6 +45,17 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1A56DB",
+          "image": "./assets/images/splash.png",
+          "resizeMode": "cover",
+          "dark": {
+            "backgroundColor": "#1A56DB"
+          }
+        }
+      ],
       "expo-router",
       "expo-font",
       [
