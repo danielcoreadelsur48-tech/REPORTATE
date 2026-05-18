@@ -53,6 +53,14 @@ export function useAuth() {
     const data = await signIn(email, password);
     if (data?.session) {
       setSession(data.session);
+      const profile = await getUserProfile(data.session.user.id);
+      setUser(profile);
+      setLoading(false);
+      if (profile) {
+        registerForPushNotifications(profile.id).catch((e) =>
+          console.warn('[Push] Token registration failed:', e)
+        );
+      }
     }
   }
 

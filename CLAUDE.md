@@ -262,8 +262,12 @@ REPÓRTATE/
 | `user_id` | `uuid` | FK → `users.id` |
 | `role` | `text` | `'captain'` o `'member'` |
 | `joined_at` | `timestamptz` | |
+| `promoted_by` | `uuid` | FK → `users.id` ON DELETE SET NULL — quién promovió |
+| `promoted_at` | `timestamptz` | Cuándo fue promovido |
 
 *Índice único en `(group_id, user_id)`.*
+
+> ⚠️ **PostgREST FK ambigüedad**: `group_members` tiene DOS foreign keys a `users` (`user_id` y `promoted_by`). TODA query que haga embed de `users` desde esta tabla DEBE usar el hint explícito `users!user_id(field)` — nunca `users(field)` a secas. Si no, PostgREST falla silenciosamente.
 
 ### `invitations`
 | Campo | Tipo | Notas |
@@ -480,7 +484,7 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 
 ---
 
-## Estado Actual del Proyecto (2026-05-17)
+## Estado Actual del Proyecto (2026-05-17, sesión 3)
 
 ### Infraestructura
 - **Supabase project**: `msokvacqoptnanyamyoc` (plan free, org "Noland")
@@ -503,6 +507,8 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - Botón "Llegada a casa" en home: GPS + notificación grupal, graba en tabla `home_arrivals`
 - Panel de actividad diaria (`DayActivitySheet`): bottom sheet 3 pestañas (Reportes / Emergencias / Sin reportar), Realtime, badge de unread
 - Edge Function `send-notification` desplegada
+- **Revocación de rol Admin**: el creador del grupo puede quitar el rol Admin a otros admins. `MemberCard` muestra estrella dorada al creador, ícono rojo al creador sobre admins promovidos
+- **Rol "Admin"**: el valor en DB sigue siendo `'captain'`; en toda la UI se muestra como "Admin" (`STRINGS.GROUP.CAPTAIN_BADGE = 'Admin'`)
 
 ### Funcionalidades pendientes
 - Invitaciones: generar código para capitanes (`app/(app)/group/invite.tsx`) — pantalla `join.tsx` ya existe
@@ -556,6 +562,8 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - ✓ `008_realtime_custom_reports.sql`
 - ✓ `009_allow_multiple_gps_buttons.sql`
 - ✓ `010_home_arrivals.sql`
+- ✓ `011_promote_member_policy.sql` — política RLS para que capitanes promuevan miembros
+- ✓ `012_revoke_captain_policy.sql` — agrega `promoted_by`/`promoted_at` a `group_members`; dos políticas UPDATE separadas: promoción (cualquier admin) y revocación (solo creador del grupo)
 
 ### Bugs resueltos críticos
 | Bug | Síntoma | Fix |
@@ -569,6 +577,9 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 | PostGIS WKB hex en `location` | Coordenadas no parseables desde JS | `utils/parseWKB.ts` — parser EWKB compartido |
 | Flash de empty state en home | `isLoadingGroups` iniciaba en `false` | `groupStore.ts`: inicializar `isLoading: true` |
 | Verificación de email sin pantalla | Redirigía a URL rota del dashboard | `emailRedirectTo: 'reportate://verify-email'` + pantalla `verify-email.tsx` |
+| FK ambigüedad tras migración 012 | Miembros vacíos, edge function 500, DayActivitySheet vacío, SOS/HomeArrival fallaban | `users!user_id(field)` en TODA query desde `group_members` que embeds `users` |
+| Login spinner permanente (primer inicio) | App bloqueada en `ActivityIndicator` tras login | `hooks/useAuth.ts`: `login()` llama `getUserProfile` + `setUser` + `setLoading(false)` directamente sin esperar `onAuthStateChange` |
+| Splash Android 12+ logo diminuto | Logo aparece como ícono de ~40px en pantalla | `expo-splash-screen v31` usa API nativa del SO: imagen cuadrada 1024×1024 + `imageWidth: 350` en plugin; requiere nuevo build |
 
 ### Cuentas de usuario en DB
 - `e5073812...` → dineroleo8@gmail.com ("Daniel Ramos")
@@ -580,6 +591,14 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - Para ver emails de usuarios: `SELECT u.full_name, a.email FROM public.users u JOIN auth.users a ON a.id = u.id`
 - Variables de entorno EAS están en environment "production" como tipo "secret" — tienen prioridad sobre `.env` local
 - Para cambiar clave: `eas env:update production --variable-name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "clave" --visibility secret --non-interactive`
+
+### Notas operativas — Splash Screen (Android)
+- `expo-splash-screen v31` (SDK 54) en Android 12+ usa la API nativa del SO: muestra un ícono centrado, NO imagen de pantalla completa
+- La imagen debe ser **cuadrada** (1024×1024) con el logo ocupando ~50–60% del frame
+- `imageWidth: 350` en el plugin controla el tamaño del ícono en dp (~88% del ancho en teléfonos estándar)
+- `resizeMode: "contain"` es correcto para imagen cuadrada en contenedor cuadrado
+- Regenerar imágenes: `node scripts/generate-logo.js`
+- Todo cambio de splash requiere **nueva build nativa** — no se puede aplicar por OTA
 
 ### Comandos clave
 ```bash

@@ -146,7 +146,7 @@ function SelectStage({ captainGroups, textColor, borderColor, isDark, onSelect }
         <View style={styles.emptyBlock}>
           <Ionicons name="information-circle-outline" size={32} color={Colors.neutral[400]} />
           <Text style={[styles.emptyText, { color: Colors.text.secondary }]}>
-            Solo los capitanes pueden eliminar grupos. No eres capitán en ningún grupo actualmente.
+            Solo los admins pueden eliminar grupos. No eres admin en ningún grupo actualmente.
           </Text>
         </View>
       ) : (

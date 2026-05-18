@@ -69,7 +69,7 @@ export default function JoinGroupScreen() {
               <Ionicons name="key-outline" size={48} color={Colors.primary[500]} />
             </View>
             <Text style={[styles.subtitle, { color: Colors.text.secondary }]}>
-              Ingresa el código de 6 caracteres que te compartió el capitán del grupo
+              Ingresa el código de 6 caracteres que te compartió el admin del grupo
             </Text>
           </View>
 
