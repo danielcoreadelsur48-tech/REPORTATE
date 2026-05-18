@@ -82,7 +82,7 @@ export function DayActivitySheet({ visible, groupId, isCaptain, onClose }: DayAc
     } finally {
       setIsLoading(false);
     }
-  }, [groupId]);
+  }, [groupId, isCaptain]);
 
   useEffect(() => {
     if (!visible || !groupId) return;
