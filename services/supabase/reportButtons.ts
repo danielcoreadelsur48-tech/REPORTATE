@@ -106,7 +106,7 @@ export async function insertHomeArrival(params: {
   if (error) throw error;
 }
 
-export async function getTodayGroupActivity(groupId: string): Promise<DayActivityItem[]> {
+export async function getTodayGroupActivity(groupId: string, isCaptain: boolean): Promise<DayActivityItem[]> {
   const today = new Date().toLocaleDateString('en-CA');
   const [{ data: reports, error: e1 }, { data: arrivals, error: e2 }] = await Promise.all([
     supabase
@@ -134,7 +134,7 @@ export async function getTodayGroupActivity(groupId: string): Promise<DayActivit
     buttonName: row.report_buttons?.name ?? '',
     buttonIcon: row.report_buttons?.icon ?? '',
     createdAt: row.created_at,
-    location: typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
+    location: isCaptain && typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
   }));
 
   const arrivalItems: DayActivityItem[] = (arrivals ?? []).map((row: any) => ({
@@ -145,7 +145,7 @@ export async function getTodayGroupActivity(groupId: string): Promise<DayActivit
     buttonName: 'Llegada a casa',
     buttonIcon: 'home',
     createdAt: row.created_at,
-    location: typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
+    location: isCaptain && typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
   }));
 
   return [...reportItems, ...arrivalItems].sort(

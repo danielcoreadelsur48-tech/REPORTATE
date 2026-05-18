@@ -42,10 +42,11 @@ function isUnread(createdAt: string, lastSeenAt: string | null): boolean {
 interface DayActivitySheetProps {
   visible: boolean;
   groupId: string | null;
+  isCaptain: boolean;
   onClose: () => void;
 }
 
-export function DayActivitySheet({ visible, groupId, onClose }: DayActivitySheetProps) {
+export function DayActivitySheet({ visible, groupId, isCaptain, onClose }: DayActivitySheetProps) {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
 
@@ -68,7 +69,7 @@ export function DayActivitySheet({ visible, groupId, onClose }: DayActivitySheet
     try {
       const [seen, acts, sos, pend] = await Promise.all([
         AsyncStorage.getItem(lastSeenKey(groupId)),
-        getTodayGroupActivity(groupId),
+        getTodayGroupActivity(groupId, isCaptain),
         getTodayGroupSOSEvents(groupId),
         getMembersWithoutCustomReport(groupId),
       ]);
@@ -94,14 +95,14 @@ export function DayActivitySheet({ visible, groupId, onClose }: DayActivitySheet
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'custom_reports', filter: `group_id=eq.${groupId}` },
         () => {
-          getTodayGroupActivity(groupId).then(setReports).catch(() => {});
+          getTodayGroupActivity(groupId, isCaptain).then(setReports).catch(() => {});
           getMembersWithoutCustomReport(groupId).then(setPending).catch(() => {});
         },
       )
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'home_arrivals', filter: `group_id=eq.${groupId}` },
-        () => { getTodayGroupActivity(groupId).then(setReports).catch(() => {}); },
+        () => { getTodayGroupActivity(groupId, isCaptain).then(setReports).catch(() => {}); },
       )
       .on(
         'postgres_changes',

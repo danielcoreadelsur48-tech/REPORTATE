@@ -293,6 +293,7 @@ export default function GroupScreen() {
       <DayActivitySheet
         visible={showActivity}
         groupId={activeGroupId}
+        isCaptain={isCaptain}
         onClose={handleCloseActivity}
       />
 
