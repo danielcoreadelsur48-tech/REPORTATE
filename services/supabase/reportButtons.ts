@@ -108,16 +108,17 @@ export async function insertHomeArrival(params: {
 
 export async function getTodayGroupActivity(groupId: string, isCaptain: boolean): Promise<DayActivityItem[]> {
   const today = new Date().toLocaleDateString('en-CA');
+  const locationField = isCaptain ? ', location' : '';
   const [{ data: reports, error: e1 }, { data: arrivals, error: e2 }] = await Promise.all([
     supabase
       .from('custom_reports')
-      .select('id, created_at, user_id, location, users(full_name, avatar_url), report_buttons(name, icon)')
+      .select(`id, created_at, user_id${locationField}, users!user_id(full_name, avatar_url), report_buttons(name, icon)`)
       .eq('group_id', groupId)
       .eq('window_date', today)
       .order('created_at', { ascending: false }),
     supabase
       .from('home_arrivals')
-      .select('id, created_at, user_id, location, users(full_name, avatar_url)')
+      .select(`id, created_at, user_id${locationField}, users!user_id(full_name, avatar_url)`)
       .eq('group_id', groupId)
       .eq('report_date', today)
       .order('created_at', { ascending: false }),
@@ -134,7 +135,7 @@ export async function getTodayGroupActivity(groupId: string, isCaptain: boolean)
     buttonName: row.report_buttons?.name ?? '',
     buttonIcon: row.report_buttons?.icon ?? '',
     createdAt: row.created_at,
-    location: isCaptain && typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
+    location: typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
   }));
 
   const arrivalItems: DayActivityItem[] = (arrivals ?? []).map((row: any) => ({
@@ -145,7 +146,7 @@ export async function getTodayGroupActivity(groupId: string, isCaptain: boolean)
     buttonName: 'Llegada a casa',
     buttonIcon: 'home',
     createdAt: row.created_at,
-    location: isCaptain && typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
+    location: typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
   }));
 
   return [...reportItems, ...arrivalItems].sort(
