@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing[2],
     paddingBottom: Spacing[10],
     paddingHorizontal: Spacing[5],
-    maxHeight: '82%',
+    height: '82%',
     ...Shadow.lg,
   },
   handle: {

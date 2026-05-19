@@ -52,6 +52,7 @@ export function useAuth() {
   async function login(email: string, password: string) {
     const data = await signIn(email, password);
     if (data?.session) {
+      setLoading(true);
       setSession(data.session);
       const profile = await getUserProfile(data.session.user.id);
       setUser(profile);
