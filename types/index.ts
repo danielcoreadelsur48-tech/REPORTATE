@@ -9,6 +9,8 @@ export interface MemberWithStatus {
   journeyStatus: 'started' | 'ended' | 'none';
   startedAt: string | null;
   endedAt: string | null;
+  hasReportedToday: boolean;
+  lastReportedAt: string | null;
 }
 
 export interface GroupWithRole {

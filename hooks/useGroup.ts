@@ -25,7 +25,7 @@ export function useGroup() {
     try {
       const data = await getUserGroups(user.id);
       setGroups(data);
-      if (data.length > 0 && !activeGroupId) {
+      if (data.length > 0 && !useGroupStore.getState().activeGroupId) {
         setActiveGroupId(data[0].id);
       }
     } finally {

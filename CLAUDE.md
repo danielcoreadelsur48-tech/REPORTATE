@@ -484,7 +484,7 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 
 ---
 
-## Estado Actual del Proyecto (2026-05-17, sesión 3)
+## Estado Actual del Proyecto (2026-05-18, sesión 4)
 
 ### Infraestructura
 - **Supabase project**: `msokvacqoptnanyamyoc` (plan free, org "Noland")
@@ -505,10 +505,13 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - Botones de reporte personalizados: crear, grilla, press con notificación grupal, recordatorio local, **días activos por botón** (`active_days int[]`, selector L–D, estado `day_inactive`)
 - Botón SOS: activación con confirmación (5 s countdown), tracking GPS, notifica **todos los grupos** del usuario (no solo el activo); incluye coords GPS en payload
 - Botón "Llegada a casa" en home: GPS + notificación grupal, graba en tabla `home_arrivals`
-- Panel de actividad diaria (`DayActivitySheet`): bottom sheet 3 pestañas (Reportes / Emergencias / Sin reportar), Realtime, badge de unread
+- Panel de actividad diaria (`DayActivitySheet`): bottom sheet 3 pestañas (Reportes / Emergencias / Sin reportar), Realtime, badge de unread, **scroll habilitado** (`flex: 1` en content)
 - Edge Function `send-notification` desplegada
 - **Revocación de rol Admin**: el creador del grupo puede quitar el rol Admin a otros admins. `MemberCard` muestra estrella dorada al creador, ícono rojo al creador sobre admins promovidos
 - **Rol "Admin"**: el valor en DB sigue siendo `'captain'`; en toda la UI se muestra como "Admin" (`STRINGS.GROUP.CAPTAIN_BADGE = 'Admin'`)
+- **MemberCard estado real**: badge verde "Reportó hoy · HH:MM" si el miembro presionó cualquier botón personalizado o llegada a casa hoy; badge gris "Sin reporte hoy" si no. `MemberWithStatus` agrega `hasReportedToday: boolean` y `lastReportedAt: string | null`
+- **GPS en DayActivitySheet solo para admins**: `getTodayGroupActivity(groupId, isCaptain)` filtra a nivel de query — la columna `location` no se selecciona del DB para no-capitanes. `DayActivitySheet` acepta prop `isCaptain`
+- **Pull-to-refresh mantiene grupo activo**: `loadGroups` en `useGroup.ts` usa `useGroupStore.getState().activeGroupId` en lugar de la variable capturada en el closure (que era siempre `null`)
 
 ### Funcionalidades pendientes
 - Invitaciones: generar código para capitanes (`app/(app)/group/invite.tsx`) — pantalla `join.tsx` ya existe
@@ -580,6 +583,9 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 | FK ambigüedad tras migración 012 | Miembros vacíos, edge function 500, DayActivitySheet vacío, SOS/HomeArrival fallaban | `users!user_id(field)` en TODA query desde `group_members` que embeds `users` |
 | Login spinner permanente (primer inicio) | App bloqueada en `ActivityIndicator` tras login | `hooks/useAuth.ts`: `login()` llama `getUserProfile` + `setUser` + `setLoading(false)` directamente sin esperar `onAuthStateChange` |
 | Splash Android 12+ logo diminuto | Logo aparece como ícono de ~40px en pantalla | `expo-splash-screen v31` usa API nativa del SO: imagen cuadrada 1024×1024 + `imageWidth: 350` en plugin; requiere nuevo build |
+| DayActivitySheet no scrollea | Lista se recorta pero no es scrolleable | `content` style: `maxHeight: 420` → `flex: 1` + `minHeight: 180`. FlatList necesita padre con altura definida para activar scroll |
+| Pull-to-refresh cambia grupo activo | Siempre vuelve al primer grupo al refrescar | `loadGroups` useCallback capturaba `activeGroupId = null` (stale closure). Fix: `useGroupStore.getState().activeGroupId` dentro del callback |
+| "Sin reporte hoy" siempre fijo | `journeyStatus` siempre `'none'` porque botones de jornada fueron removidos de home | `getGroupMembers` consulta `custom_reports` + `home_arrivals` en paralelo; `MemberWithStatus` agrega `hasReportedToday` + `lastReportedAt` |
 
 ### Cuentas de usuario en DB
 - `e5073812...` → dineroleo8@gmail.com ("Daniel Ramos")

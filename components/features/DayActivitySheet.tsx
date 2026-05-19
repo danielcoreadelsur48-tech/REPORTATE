@@ -402,8 +402,8 @@ const styles = StyleSheet.create({
     fontWeight: Typography.weight.semibold,
   },
   content: {
+    flex: 1,
     minHeight: 180,
-    maxHeight: 420,
   },
   skeletonWrap: { gap: Spacing[4] },
   skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[3] },

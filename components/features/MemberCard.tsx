@@ -17,12 +17,6 @@ interface MemberCardProps {
 }
 
 export function MemberCard({ member, isGroupCreator, onPromote, onRevoke }: MemberCardProps) {
-  const statusConfig = {
-    ended: { label: STRINGS.GROUP.STATUS_ENDED, variant: 'success' as const },
-    started: { label: STRINGS.GROUP.STATUS_ACTIVE, variant: 'primary' as const },
-    none: { label: STRINGS.GROUP.STATUS_NONE, variant: 'neutral' as const },
-  }[member.journeyStatus];
-
   return (
     <Card style={styles.card}>
       <Avatar uri={member.avatar_url} name={member.full_name} size={44} />
@@ -47,12 +41,13 @@ export function MemberCard({ member, isGroupCreator, onPromote, onRevoke }: Memb
           )}
         </View>
         <View style={styles.statusRow}>
-          <Badge label={statusConfig.label} variant={statusConfig.variant} />
-          {member.journeyStatus === 'ended' && member.endedAt && (
-            <Text style={styles.time}>{formatTime(member.endedAt)}</Text>
-          )}
-          {member.journeyStatus === 'started' && member.startedAt && (
-            <Text style={styles.time}>{formatTime(member.startedAt)}</Text>
+          {member.hasReportedToday ? (
+            <Badge
+              label={`Reportó hoy · ${formatTime(member.lastReportedAt!)}`}
+              variant="success"
+            />
+          ) : (
+            <Badge label={STRINGS.GROUP.STATUS_NONE} variant="neutral" />
           )}
         </View>
       </View>

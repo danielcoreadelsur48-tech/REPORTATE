@@ -114,35 +114,50 @@ export async function joinGroupByToken(userId: string, token: string): Promise<v
 }
 
 export async function getGroupMembers(groupId: string): Promise<MemberWithStatus[]> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = new Date().toLocaleDateString('en-CA');
 
-  const { data: members, error } = await supabase
-    .from('group_members')
-    .select(`
-      user_id,
-      role,
-      users!user_id (full_name, avatar_url)
-    `)
-    .eq('group_id', groupId);
+  const [membersResult, reportsResult, customResult, arrivalsResult] = await Promise.all([
+    supabase
+      .from('group_members')
+      .select(`user_id, role, users!user_id (full_name, avatar_url)`)
+      .eq('group_id', groupId),
+    supabase
+      .from('reports')
+      .select('user_id, type, created_at')
+      .eq('group_id', groupId)
+      .gte('created_at', `${today}T00:00:00.000Z`)
+      .lte('created_at', `${today}T23:59:59.999Z`),
+    supabase
+      .from('custom_reports')
+      .select('user_id, created_at')
+      .eq('group_id', groupId)
+      .eq('window_date', today),
+    supabase
+      .from('home_arrivals')
+      .select('user_id, created_at')
+      .eq('group_id', groupId)
+      .eq('report_date', today),
+  ]);
 
-  if (error) throw error;
-
-  const { data: reports } = await supabase
-    .from('reports')
-    .select('user_id, type, created_at')
-    .eq('group_id', groupId)
-    .gte('created_at', `${today}T00:00:00.000Z`)
-    .lte('created_at', `${today}T23:59:59.999Z`);
+  if (membersResult.error) throw membersResult.error;
 
   const reportMap = new Map<string, { start?: string; end?: string }>();
-  for (const r of reports ?? []) {
+  for (const r of reportsResult.data ?? []) {
     const entry = reportMap.get(r.user_id) ?? {};
     if (r.type === 'start') entry.start = r.created_at;
     if (r.type === 'end') entry.end = r.created_at;
     reportMap.set(r.user_id, entry);
   }
 
-  return (members ?? []).map((m) => {
+  const reportedMap = new Map<string, string>();
+  for (const r of [...(customResult.data ?? []), ...(arrivalsResult.data ?? [])]) {
+    const prev = reportedMap.get(r.user_id);
+    if (!prev || new Date(r.created_at) > new Date(prev)) {
+      reportedMap.set(r.user_id, r.created_at);
+    }
+  }
+
+  return (membersResult.data ?? []).map((m) => {
     const user = m.users as unknown as { full_name: string; avatar_url: string | null };
     const rep = reportMap.get(m.user_id) ?? {};
     return {
@@ -153,6 +168,8 @@ export async function getGroupMembers(groupId: string): Promise<MemberWithStatus
       journeyStatus: rep.end ? 'ended' : rep.start ? 'started' : 'none',
       startedAt: rep.start ?? null,
       endedAt: rep.end ?? null,
+      hasReportedToday: reportedMap.has(m.user_id),
+      lastReportedAt: reportedMap.get(m.user_id) ?? null,
     } satisfies MemberWithStatus;
   });
 }
