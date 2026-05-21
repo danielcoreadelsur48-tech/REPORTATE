@@ -8,11 +8,7 @@ export function useAuth() {
   const { session, user, isLoading, setSession, setUser, setLoading, clear } = useAuthStore();
 
   useEffect(() => {
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('session_timeout')), 5000)
-    );
-
-    Promise.race([supabase.auth.getSession(), timeout])
+    supabase.auth.getSession()
       .then(({ data }) => {
         setSession(data.session);
         if (data.session?.user) {
@@ -20,7 +16,7 @@ export function useAuth() {
         }
       })
       .catch(() => {
-        setSession(null);
+        // silent — onAuthStateChange maneja la recuperación
       })
       .finally(() => {
         setLoading(false);
