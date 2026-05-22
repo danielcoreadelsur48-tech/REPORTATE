@@ -96,6 +96,11 @@ export default function GroupScreen() {
         { event: 'INSERT', schema: 'public', table: 'home_arrivals', filter: `group_id=eq.${activeGroupId}` },
         () => { if (!activityOpenRef.current) setHasNewActivity(true); },
       )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'coe_arrivals', filter: `group_id=eq.${activeGroupId}` },
+        () => { if (!activityOpenRef.current) setHasNewActivity(true); },
+      )
       .subscribe();
 
     return () => {

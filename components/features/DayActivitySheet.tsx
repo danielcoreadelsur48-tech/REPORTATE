@@ -106,6 +106,14 @@ export function DayActivitySheet({ visible, groupId, isCaptain, onClose }: DayAc
       )
       .on(
         'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'coe_arrivals', filter: `group_id=eq.${groupId}` },
+        () => {
+          getTodayGroupActivity(groupId, isCaptain).then(setReports).catch(() => {});
+          getMembersWithoutCustomReport(groupId).then(setPending).catch(() => {});
+        },
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'sos_events', filter: `group_id=eq.${groupId}` },
         () => { getTodayGroupSOSEvents(groupId).then(setSOSEvents).catch(() => {}); },
       )

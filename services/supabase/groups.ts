@@ -116,7 +116,7 @@ export async function joinGroupByToken(userId: string, token: string): Promise<v
 export async function getGroupMembers(groupId: string): Promise<MemberWithStatus[]> {
   const today = new Date().toLocaleDateString('en-CA');
 
-  const [membersResult, reportsResult, customResult, arrivalsResult] = await Promise.all([
+  const [membersResult, reportsResult, customResult, arrivalsResult, coeResult] = await Promise.all([
     supabase
       .from('group_members')
       .select(`user_id, role, users!user_id (full_name, avatar_url)`)
@@ -137,6 +137,11 @@ export async function getGroupMembers(groupId: string): Promise<MemberWithStatus
       .select('user_id, created_at')
       .eq('group_id', groupId)
       .eq('report_date', today),
+    supabase
+      .from('coe_arrivals')
+      .select('user_id, created_at')
+      .eq('group_id', groupId)
+      .eq('report_date', today),
   ]);
 
   if (membersResult.error) throw membersResult.error;
@@ -150,7 +155,7 @@ export async function getGroupMembers(groupId: string): Promise<MemberWithStatus
   }
 
   const reportedMap = new Map<string, string>();
-  for (const r of [...(customResult.data ?? []), ...(arrivalsResult.data ?? [])]) {
+  for (const r of [...(customResult.data ?? []), ...(arrivalsResult.data ?? []), ...(coeResult.data ?? [])]) {
     const prev = reportedMap.get(r.user_id);
     if (!prev || new Date(r.created_at) > new Date(prev)) {
       reportedMap.set(r.user_id, r.created_at);

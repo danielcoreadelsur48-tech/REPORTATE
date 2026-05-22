@@ -17,6 +17,7 @@ import * as Haptics from 'expo-haptics';
 import { ReportButtonGrid } from '@/components/features/ReportButtonGrid';
 import { GroupPickerSheet } from '@/components/features/GroupPickerSheet';
 import { HomeArrivalButton } from '@/components/features/HomeArrivalButton';
+import { COEButton } from '@/components/features/COEButton';
 import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAuthStore } from '@/store/authStore';
@@ -27,7 +28,7 @@ import { Colors, Typography, Spacing, Radius, Shadow } from '@/constants/theme';
 import { STRINGS } from '@/constants/strings';
 import { requestLocationPermission, getCurrentLocation } from '@/services/location/getCurrentLocation';
 import { sendGroupNotification } from '@/services/notifications/sendNotification';
-import { insertHomeArrival } from '@/services/supabase/reportButtons';
+import { insertHomeArrival, insertCOEArrival } from '@/services/supabase/reportButtons';
 
 export default function HomeScreen() {
   const scheme = useColorScheme();
@@ -64,6 +65,40 @@ export default function HomeScreen() {
       await pressButton(button);
     } catch (e) {
       Alert.alert('Error', e instanceof Error ? e.message : STRINGS.ERRORS.GENERIC);
+    }
+  }
+
+  async function handleCOEArrival() {
+    if (!activeGroupId || !user) return;
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      let loc: { lat: number; lng: number } | undefined;
+      const granted = await requestLocationPermission();
+      if (granted) {
+        try { loc = await getCurrentLocation(); } catch { /* GPS falló */ }
+      }
+      try {
+        await insertCOEArrival({ userId: user.id, groupId: activeGroupId, location: loc });
+      } catch { /* continuar aunque falle el registro */ }
+      await Promise.all([
+        sendGroupNotification({
+          groupId: activeGroupId,
+          type: 'COE_ARRIVAL',
+          title: STRINGS.COE_BUTTON.NOTIFICATION_TITLE,
+          body: STRINGS.COE_BUTTON.NOTIFICATION_BODY.replace('{name}', user.full_name),
+        }),
+        loc && sendGroupNotification({
+          groupId: activeGroupId,
+          type: 'COE_ARRIVAL',
+          title: STRINGS.COE_BUTTON.NOTIFICATION_TITLE,
+          body: STRINGS.COE_BUTTON.NOTIFICATION_BODY.replace('{name}', user.full_name),
+          data: { lat: loc.lat, lng: loc.lng },
+          recipientRole: 'captain',
+        }),
+      ].filter(Boolean));
+      Alert.alert(STRINGS.COE_BUTTON.SUCCESS_TITLE, STRINGS.COE_BUTTON.SUCCESS_BODY);
+    } catch {
+      Alert.alert('Error', STRINGS.ERRORS.GENERIC);
     }
   }
 
@@ -209,7 +244,10 @@ export default function HomeScreen() {
 
       <GroupPickerSheet visible={showPicker} onClose={() => setShowPicker(false)} />
       {groups.length > 0 && activeGroupId && (
-        <HomeArrivalButton onPress={handleHomeArrival} />
+        <View style={styles.arrivalRow}>
+          <HomeArrivalButton onPress={handleHomeArrival} />
+          <COEButton onPress={handleCOEArrival} />
+        </View>
       )}
     </SafeAreaView>
   );
@@ -217,7 +255,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
-  scroll: { padding: Spacing[5], paddingBottom: 128, gap: Spacing[5], flexGrow: 1 },
+  scroll: { padding: Spacing[5], paddingBottom: 144, gap: Spacing[5], flexGrow: 1 },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,6 +340,15 @@ const styles = StyleSheet.create({
   actionBtnOutline: {
     backgroundColor: 'transparent',
     borderWidth: 2,
+  },
+  arrivalRow: {
+    position: 'absolute',
+    bottom: 32,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing[6],
   },
   actionBtnText: {
     fontSize: Typography.size.lg,

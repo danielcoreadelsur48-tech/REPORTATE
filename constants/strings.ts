@@ -109,6 +109,13 @@ export const STRINGS = {
     SUCCESS_TITLE: '¡Listo!',
     SUCCESS_BODY: 'Tu grupo fue notificado de tu llegada',
   },
+  COE_BUTTON: {
+    LABEL: 'En COE',
+    NOTIFICATION_TITLE: '🏢 Llegada al COE',
+    NOTIFICATION_BODY: '{name} ha llegado al COE',
+    SUCCESS_TITLE: '¡Listo!',
+    SUCCESS_BODY: 'Tu grupo fue notificado de tu llegada al COE',
+  },
   REPORT_BUTTONS: {
     SECTION_TITLE: 'Mis reportes',
     MANAGE_TITLE: 'Botones de reporte',

@@ -106,10 +106,27 @@ export async function insertHomeArrival(params: {
   if (error) throw error;
 }
 
+export async function insertCOEArrival(params: {
+  userId: string;
+  groupId: string;
+  location?: { lat: number; lng: number };
+}): Promise<void> {
+  const payload: Record<string, unknown> = {
+    user_id: params.userId,
+    group_id: params.groupId,
+  };
+  if (params.location) {
+    payload.location = `POINT(${params.location.lng} ${params.location.lat})`;
+  }
+  payload.report_date = new Date().toLocaleDateString('en-CA');
+  const { error } = await supabase.from('coe_arrivals').insert(payload);
+  if (error) throw error;
+}
+
 export async function getTodayGroupActivity(groupId: string, isCaptain: boolean): Promise<DayActivityItem[]> {
   const today = new Date().toLocaleDateString('en-CA');
   const locationField = isCaptain ? ', location' : '';
-  const [{ data: reports, error: e1 }, { data: arrivals, error: e2 }] = await Promise.all([
+  const [{ data: reports, error: e1 }, { data: arrivals, error: e2 }, { data: coeArrivals, error: e3 }] = await Promise.all([
     supabase
       .from('custom_reports')
       .select(`id, created_at, user_id${locationField}, users!user_id(full_name, avatar_url), report_buttons(name, icon)`)
@@ -122,10 +139,17 @@ export async function getTodayGroupActivity(groupId: string, isCaptain: boolean)
       .eq('group_id', groupId)
       .eq('report_date', today)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('coe_arrivals')
+      .select(`id, created_at, user_id${locationField}, users!user_id(full_name, avatar_url)`)
+      .eq('group_id', groupId)
+      .eq('report_date', today)
+      .order('created_at', { ascending: false }),
   ]);
 
   if (e1) throw e1;
   if (e2) throw e2;
+  if (e3) throw e3;
 
   const reportItems: DayActivityItem[] = (reports ?? []).map((row: any) => ({
     id: row.id,
@@ -149,14 +173,25 @@ export async function getTodayGroupActivity(groupId: string, isCaptain: boolean)
     location: typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
   }));
 
-  return [...reportItems, ...arrivalItems].sort(
+  const coeItems: DayActivityItem[] = (coeArrivals ?? []).map((row: any) => ({
+    id: row.id,
+    userId: row.user_id,
+    userFullName: row.users?.full_name ?? '',
+    userAvatarUrl: row.users?.avatar_url ?? null,
+    buttonName: 'Llegada al COE',
+    buttonIcon: 'business',
+    createdAt: row.created_at,
+    location: typeof row.location === 'string' ? parseWKBPoint(row.location) : null,
+  }));
+
+  return [...reportItems, ...arrivalItems, ...coeItems].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   );
 }
 
 export async function getMembersWithoutCustomReport(groupId: string): Promise<PendingMember[]> {
   const today = new Date().toLocaleDateString('en-CA');
-  const [membersResult, reportersResult] = await Promise.all([
+  const [membersResult, reportersResult, arrivalsResult, coeResult] = await Promise.all([
     supabase
       .from('group_members')
       .select('user_id, role, users!user_id(full_name, avatar_url)')
@@ -166,10 +201,24 @@ export async function getMembersWithoutCustomReport(groupId: string): Promise<Pe
       .select('user_id')
       .eq('group_id', groupId)
       .eq('window_date', today),
+    supabase
+      .from('home_arrivals')
+      .select('user_id')
+      .eq('group_id', groupId)
+      .eq('report_date', today),
+    supabase
+      .from('coe_arrivals')
+      .select('user_id')
+      .eq('group_id', groupId)
+      .eq('report_date', today),
   ]);
 
   if (membersResult.error) throw membersResult.error;
-  const reportedSet = new Set((reportersResult.data ?? []).map((r) => r.user_id));
+  const reportedSet = new Set([
+    ...(reportersResult.data ?? []).map((r) => r.user_id),
+    ...(arrivalsResult.data ?? []).map((r) => r.user_id),
+    ...(coeResult.data ?? []).map((r) => r.user_id),
+  ]);
   return (membersResult.data ?? [])
     .filter((m: any) => !reportedSet.has(m.user_id))
     .map((m: any) => ({

@@ -67,7 +67,8 @@ export type NotificationType =
   | 'SOS_ACTIVATED'
   | 'SOS_RESOLVED'
   | 'CUSTOM_REPORT'
-  | 'HOME_ARRIVAL';
+  | 'HOME_ARRIVAL'
+  | 'COE_ARRIVAL';
 
 // ── Report Buttons ───────────────────────────────────────────────────────────
 
