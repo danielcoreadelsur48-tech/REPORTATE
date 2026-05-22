@@ -8,8 +8,21 @@ export function useAuth() {
   const { session, user, isLoading, setSession, setUser, setLoading, clear } = useAuthStore();
 
   useEffect(() => {
+    let resolved = false;
+
+    const safetyTimer = setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        setLoading(false);
+      }
+    }, 10000);
+
     supabase.auth.getSession()
       .then(({ data }) => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(safetyTimer);
+        }
         setSession(data.session);
         if (data.session?.user) {
           getUserProfile(data.session.user.id).then(setUser);
@@ -19,6 +32,10 @@ export function useAuth() {
         // silent — onAuthStateChange maneja la recuperación
       })
       .finally(() => {
+        if (!resolved) {
+          resolved = true;
+          clearTimeout(safetyTimer);
+        }
         setLoading(false);
       });
 
@@ -42,7 +59,10 @@ export function useAuth() {
       }
     });
 
-    return () => listener.subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
   async function login(email: string, password: string) {
