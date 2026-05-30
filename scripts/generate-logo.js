@@ -40,10 +40,10 @@ function adaptiveSvg(size) {
 }
 
 function splashSvg(size) {
-  const fontSizeR = Math.round(size * 0.52);
-  const fontSizeTag = Math.round(size * 0.065);
-  const yR = Math.round(size * 0.62);
-  const yTag = Math.round(size * 0.78);
+  const fontSizeR = Math.round(size * 0.65);
+  const fontSizeTag = Math.round(size * 0.07);
+  const yR = Math.round(size * 0.67);
+  const yTag = Math.round(size * 0.82);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <rect width="${size}" height="${size}" fill="#1A56DB"/>
   <text
