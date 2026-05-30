@@ -160,7 +160,7 @@ export default function HomeScreen() {
           <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
         </View>
 
-        {isLoadingGroups && groups.length === 0 ? (
+        {(isLoadingGroups || !user) && groups.length === 0 ? (
           <View style={styles.skeletonContainer}>
             <Skeleton height={56} borderRadius={Radius.xl} />
             <Skeleton height={56} borderRadius={Radius.xl} />

@@ -22,7 +22,10 @@ export function useGroup() {
   const activeGroup = groups.find((g) => g.id === activeGroupId) ?? null;
 
   const loadGroups = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoadingGroups(false);
+      return;
+    }
     setLoadingGroups(true);
     try {
       const data = await getUserGroups(user.id);

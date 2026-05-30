@@ -24,6 +24,7 @@ export function useAuth() {
           clearTimeout(safetyTimer);
         }
         setSession(data.session);
+        setLoading(false);
         if (data.session?.user) {
           const profile = await getUserProfile(data.session.user.id);
           setUser(profile);
