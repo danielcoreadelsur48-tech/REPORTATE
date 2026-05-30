@@ -42,10 +42,16 @@ function adaptiveSvg(size) {
 function splashSvg(size) {
   const fontSizeR = Math.round(size * 0.52);
   const fontSizeTag = Math.round(size * 0.065);
-  const yR = Math.round(size * 0.57);
-  const yTag = Math.round(size * 0.71);
+  const yR = Math.round(size * 0.62);
+  const yTag = Math.round(size * 0.78);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <rect width="${size}" height="${size}" fill="#1A56DB"/>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1A56DB"/>
+      <stop offset="100%" stop-color="#0F2266"/>
+    </linearGradient>
+  </defs>
+  <rect width="${size}" height="${size}" fill="url(#bg)"/>
   <text
     x="${size / 2}" y="${yR}"
     font-family="Arial Black, Arial, Helvetica, sans-serif"
