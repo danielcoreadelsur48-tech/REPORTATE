@@ -18,14 +18,15 @@ export function useAuth() {
     }, 10000);
 
     supabase.auth.getSession()
-      .then(({ data }) => {
+      .then(async ({ data }) => {
         if (!resolved) {
           resolved = true;
           clearTimeout(safetyTimer);
         }
         setSession(data.session);
         if (data.session?.user) {
-          getUserProfile(data.session.user.id).then(setUser);
+          const profile = await getUserProfile(data.session.user.id);
+          setUser(profile);
         }
       })
       .catch(() => {
