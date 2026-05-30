@@ -223,7 +223,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
             )}
 
-            {buttons.length > 0 && (
+            {buttons.length > 0 ? (
               <Card style={styles.buttonsCard}>
                 <Text style={[styles.cardTitle, { color: textColor }]}>
                   {STRINGS.REPORT_BUTTONS.SECTION_TITLE}
@@ -237,7 +237,22 @@ export default function HomeScreen() {
                   isLoading={buttonsLoading}
                 />
               </Card>
-            )}
+            ) : !buttonsLoading && isCaptain ? (
+              <TouchableOpacity
+                style={[styles.createButtonsCTA, { borderColor: Colors.primary[500] }]}
+                onPress={() => router.push('/(app)/group/buttons')}
+                accessibilityRole="button"
+                accessibilityLabel={STRINGS.REPORT_BUTTONS.NO_BUTTONS_CTA}
+              >
+                <Ionicons name="add-circle-outline" size={32} color={Colors.primary[500]} />
+                <Text style={[styles.createButtonsCTATitle, { color: Colors.primary[500] }]}>
+                  {STRINGS.REPORT_BUTTONS.NO_BUTTONS_CTA}
+                </Text>
+                <Text style={[styles.createButtonsCTASubtitle, { color: subtextColor }]}>
+                  {STRINGS.REPORT_BUTTONS.NO_BUTTONS_CAPTAIN}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
           </>
         )}
       </ScrollView>
@@ -295,6 +310,24 @@ const styles = StyleSheet.create({
   buttonsCard: { gap: Spacing[4] },
   cardTitle: { fontSize: Typography.size.xl, fontWeight: Typography.weight.bold },
   errorText: { color: Colors.danger.DEFAULT, fontSize: Typography.size.sm },
+  createButtonsCTA: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: Radius.xl,
+    paddingVertical: Spacing[6],
+    alignItems: 'center',
+    gap: Spacing[2],
+    marginBottom: Spacing[4],
+  },
+  createButtonsCTATitle: {
+    fontSize: Typography.size.lg,
+    fontWeight: Typography.weight.semibold,
+  },
+  createButtonsCTASubtitle: {
+    fontSize: Typography.size.sm,
+    textAlign: 'center',
+    paddingHorizontal: Spacing[4],
+  },
   skeletonContainer: {
     gap: Spacing[3],
     paddingVertical: Spacing[4],

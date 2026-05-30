@@ -152,6 +152,7 @@ export const STRINGS = {
     WINDOW_CLOSED: 'Ventana cerrada',
     DAY_INACTIVE: 'Hoy no aplica',
     ACTIVE_DAYS_LABEL: 'Días activos',
+    NO_BUTTONS_CTA: 'Crear primer botón',
   },
   ERRORS: {
     GENERIC: 'Ocurrió un error. Intenta de nuevo.',
