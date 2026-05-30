@@ -228,3 +228,21 @@ export async function deleteGroup(groupId: string): Promise<void> {
     .eq('id', groupId);
   if (error) throw error;
 }
+
+export async function leaveGroup(groupId: string, userId: string): Promise<void> {
+  const { error } = await supabase
+    .from('group_members')
+    .delete()
+    .eq('group_id', groupId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+export async function removeMemberFromGroup(groupId: string, targetUserId: string): Promise<void> {
+  const { error } = await supabase
+    .from('group_members')
+    .delete()
+    .eq('group_id', groupId)
+    .eq('user_id', targetUserId);
+  if (error) throw error;
+}

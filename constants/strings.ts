@@ -67,6 +67,12 @@ export const STRINGS = {
     STATUS_ACTIVE: 'En jornada',
     STATUS_ENDED: 'Jornada finalizada',
     STATUS_NONE: 'Sin reporte hoy',
+    LEAVE_GROUP: 'Salir del grupo',
+    LEAVE_GROUP_CONFIRM_TITLE: '¿Salir del grupo?',
+    LEAVE_GROUP_CONFIRM_BODY: 'No podrás ver la actividad hasta que te inviten de nuevo.',
+    CREATOR_CANNOT_LEAVE: 'Eres el creador del grupo. Elimínalo si deseas salir.',
+    KICK_MEMBER_TITLE: 'Eliminar miembro',
+    KICK_MEMBER_BODY: '¿Eliminar a {name} del grupo? Esta acción no se puede deshacer.',
   },
   SOS: {
     TITLE: 'SOS Emergencia',

@@ -14,9 +14,10 @@ interface MemberCardProps {
   isGroupCreator?: boolean;
   onPromote?: () => void;
   onRevoke?: () => void;
+  onKick?: () => void;
 }
 
-export function MemberCard({ member, isGroupCreator, onPromote, onRevoke }: MemberCardProps) {
+export function MemberCard({ member, isGroupCreator, onPromote, onRevoke, onKick }: MemberCardProps) {
   return (
     <Card style={styles.card}>
       <Avatar uri={member.avatar_url} name={member.full_name} size={44} />
@@ -37,6 +38,11 @@ export function MemberCard({ member, isGroupCreator, onPromote, onRevoke }: Memb
           {onRevoke && (
             <TouchableOpacity onPress={onRevoke} accessibilityLabel="Quitar rol Admin" hitSlop={8}>
               <Ionicons name="shield-remove-outline" size={20} color={Colors.danger.DEFAULT} />
+            </TouchableOpacity>
+          )}
+          {onKick && (
+            <TouchableOpacity onPress={onKick} accessibilityLabel="Eliminar del grupo" hitSlop={8}>
+              <Ionicons name="person-remove-outline" size={20} color={Colors.danger.DEFAULT} />
             </TouchableOpacity>
           )}
         </View>

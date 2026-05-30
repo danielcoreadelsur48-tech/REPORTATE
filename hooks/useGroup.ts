@@ -10,6 +10,8 @@ import {
   deleteGroup,
   updateMemberRole,
   revokeMemberRole,
+  leaveGroup as leaveGroupService,
+  removeMemberFromGroup,
 } from '@/services/supabase/groups';
 
 export function useGroup() {
@@ -82,6 +84,22 @@ export function useGroup() {
     setMembers([]);
   }, [groups, activeGroupId]);
 
+  const leaveGroup = useCallback(async (groupId: string) => {
+    if (!user) throw new Error('No autenticado');
+    await leaveGroupService(groupId, user.id);
+    const remaining = groups.filter((g) => g.id !== groupId);
+    setGroups(remaining);
+    if (useGroupStore.getState().activeGroupId === groupId) {
+      setActiveGroupId(remaining.length > 0 ? remaining[0].id : null);
+    }
+    setMembers([]);
+  }, [user, groups]);
+
+  const kickMember = useCallback(async (groupId: string, targetUserId: string) => {
+    await removeMemberFromGroup(groupId, targetUserId);
+    await loadMembers(groupId);
+  }, [loadMembers]);
+
   return {
     groups,
     activeGroup,
@@ -96,6 +114,8 @@ export function useGroup() {
     invite,
     joinByCode,
     remove,
+    leaveGroup,
+    kickMember,
     promoteMember,
     revokeMember,
   };

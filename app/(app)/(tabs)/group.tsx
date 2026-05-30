@@ -31,7 +31,7 @@ export default function GroupScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
   const { user } = useAuthStore();
-  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers, promoteMember, revokeMember } = useGroup();
+  const { activeGroup, activeGroupId, members, isLoadingMembers, loadGroups, loadMembers, promoteMember, revokeMember, leaveGroup, kickMember } = useGroup();
   const [showActivity, setShowActivity] = useState(false);
   const [hasNewActivity, setHasNewActivity] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
@@ -121,6 +121,53 @@ export default function GroupScreen() {
           onPress: async () => {
             try {
               await revokeMember(activeGroupId!, member.user_id);
+            } catch {
+              Alert.alert('Error', STRINGS.ERRORS.GENERIC);
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  function handleLeaveGroup() {
+    if (!activeGroupId || !user) return;
+    if (activeGroup?.created_by === user.id) {
+      Alert.alert('', STRINGS.GROUP.CREATOR_CANNOT_LEAVE);
+      return;
+    }
+    Alert.alert(
+      STRINGS.GROUP.LEAVE_GROUP_CONFIRM_TITLE,
+      STRINGS.GROUP.LEAVE_GROUP_CONFIRM_BODY,
+      [
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
+        {
+          text: STRINGS.GROUP.LEAVE_GROUP,
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await leaveGroup(activeGroupId);
+            } catch {
+              Alert.alert('Error', STRINGS.ERRORS.GENERIC);
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  function handleKickMember(member: (typeof members)[0]) {
+    Alert.alert(
+      STRINGS.GROUP.KICK_MEMBER_TITLE,
+      STRINGS.GROUP.KICK_MEMBER_BODY.replace('{name}', member.full_name),
+      [
+        { text: STRINGS.COMMON.CANCEL, style: 'cancel' },
+        {
+          text: STRINGS.COMMON.DELETE,
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await kickMember(activeGroupId!, member.user_id);
             } catch {
               Alert.alert('Error', STRINGS.ERRORS.GENERIC);
             }
@@ -232,6 +279,16 @@ export default function GroupScreen() {
             </View>
           </TouchableOpacity>
 
+          {!isCreator && activeGroupId && (
+            <TouchableOpacity
+              onPress={handleLeaveGroup}
+              accessibilityRole="button"
+              accessibilityLabel={STRINGS.GROUP.LEAVE_GROUP}
+              style={styles.iconBtn}
+            >
+              <Ionicons name="exit-outline" size={24} color={Colors.danger.DEFAULT} />
+            </TouchableOpacity>
+          )}
           {isCaptain && (
             <>
               <TouchableOpacity
@@ -283,6 +340,13 @@ export default function GroupScreen() {
               onRevoke={
                 isCreator && item.role === 'captain' && item.user_id !== user?.id
                   ? () => handleRevoke(item)
+                  : undefined
+              }
+              onKick={
+                isCaptain &&
+                item.user_id !== user?.id &&
+                item.user_id !== activeGroup?.created_by
+                  ? () => handleKickMember(item)
                   : undefined
               }
             />
