@@ -78,6 +78,31 @@ function notificationSvg(size) {
 </svg>`;
 }
 
+function featureGraphicSvg(w, h) {
+  const fontSizeR = Math.round(h * 0.62);
+  const fontSizeTag = Math.round(h * 0.09);
+  const yR = Math.round(h * 0.62);
+  const yTag = Math.round(h * 0.82);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <rect width="${w}" height="${h}" fill="#1A56DB"/>
+  <text
+    x="${w / 2}" y="${yR}"
+    font-family="Arial Black, Arial, Helvetica, sans-serif"
+    font-size="${fontSizeR}"
+    font-weight="900"
+    fill="white"
+    text-anchor="middle">R</text>
+  <text
+    x="${w / 2}" y="${yTag}"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="${fontSizeTag}"
+    font-weight="700"
+    fill="white"
+    letter-spacing="6"
+    text-anchor="middle">REPÓRTATE</text>
+</svg>`;
+}
+
 async function generate() {
   const tasks = [
     {
@@ -85,6 +110,12 @@ async function generate() {
       out: path.join(OUT, 'icon.png'),
       width: 1024,
       height: 1024,
+    },
+    {
+      svg: iconSvg(512, true),
+      out: path.join(OUT, 'icon-512.png'),
+      width: 512,
+      height: 512,
     },
     {
       svg: adaptiveSvg(1024),
@@ -109,6 +140,12 @@ async function generate() {
       out: path.join(OUT, 'notification-icon.png'),
       width: 192,
       height: 192,
+    },
+    {
+      svg: featureGraphicSvg(1024, 500),
+      out: path.join(OUT, 'feature-graphic.png'),
+      width: 1024,
+      height: 500,
     },
   ];
 
