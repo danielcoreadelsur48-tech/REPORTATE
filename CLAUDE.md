@@ -484,12 +484,17 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 
 ---
 
-## Estado Actual del Proyecto (2026-05-18, sesión 4)
+## Estado Actual del Proyecto (2026-05-30, sesión 6)
 
 ### Infraestructura
 - **Supabase project**: `msokvacqoptnanyamyoc` (plan free, org "Noland")
 - **EAS project**: `@noland4/reportate` — projectId `fb2b163c-997b-4b32-85fb-dd1ad93c6865`
 - **Firebase project**: `reportate-prod` — `google-services.json` en raíz (NO al repo)
+
+### Ramas Git
+- `master` — base, sin tocar
+- `COE` — rama de desarrollo activa (todas las features desde sesión 5)
+- `final1` — igual que `COE` pero con el **botón COE eliminado de `home.tsx`** (versión de distribución)
 
 ### Build activo
 - Perfil `preview` (APK standalone, sin dev client, sin Metro)
@@ -505,13 +510,16 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - Botones de reporte personalizados: crear, grilla, press con notificación grupal, recordatorio local, **días activos por botón** (`active_days int[]`, selector L–D, estado `day_inactive`)
 - Botón SOS: activación con confirmación (5 s countdown), tracking GPS, notifica **todos los grupos** del usuario (no solo el activo); incluye coords GPS en payload
 - Botón "Llegada a casa" en home: GPS + notificación grupal, graba en tabla `home_arrivals`
-- Panel de actividad diaria (`DayActivitySheet`): bottom sheet 3 pestañas (Reportes / Emergencias / Sin reportar), Realtime, badge de unread, **scroll habilitado** (`flex: 1` en content)
+- **Botón COE**: botón circular en home junto a "Llegada a casa", graba en tabla `coe_arrivals`, notificación grupal + GPS a capitanes. **Solo en rama `COE`** — eliminado en `final1`
+- **Salir del grupo / Expulsar miembro**: miembros pueden salirse (ícono rojo en header de `group.tsx`); capitanes pueden expulsar (`kickMember` en `MemberCard`). Migración `014_group_members_delete_policies.sql`
+- Panel de actividad diaria (`DayActivitySheet`): bottom sheet 3 pestañas (Reportes / Emergencias / Sin reportar), Realtime, badge de unread, scroll habilitado
 - Edge Function `send-notification` desplegada
-- **Revocación de rol Admin**: el creador del grupo puede quitar el rol Admin a otros admins. `MemberCard` muestra estrella dorada al creador, ícono rojo al creador sobre admins promovidos
-- **Rol "Admin"**: el valor en DB sigue siendo `'captain'`; en toda la UI se muestra como "Admin" (`STRINGS.GROUP.CAPTAIN_BADGE = 'Admin'`)
-- **MemberCard estado real**: badge verde "Reportó hoy · HH:MM" si el miembro presionó cualquier botón personalizado o llegada a casa hoy; badge gris "Sin reporte hoy" si no. `MemberWithStatus` agrega `hasReportedToday: boolean` y `lastReportedAt: string | null`
-- **GPS en DayActivitySheet solo para admins**: `getTodayGroupActivity(groupId, isCaptain)` filtra a nivel de query — la columna `location` no se selecciona del DB para no-capitanes. `DayActivitySheet` acepta prop `isCaptain`
-- **Pull-to-refresh mantiene grupo activo**: `loadGroups` en `useGroup.ts` usa `useGroupStore.getState().activeGroupId` en lugar de la variable capturada en el closure (que era siempre `null`)
+- **Revocación de rol Admin**: el creador del grupo puede quitar el rol Admin a otros admins
+- **Rol "Admin"**: valor en DB = `'captain'`; UI muestra "Admin" (`STRINGS.GROUP.CAPTAIN_BADGE = 'Admin'`)
+- **MemberCard estado real**: badge verde "Reportó hoy · HH:MM" vía `custom_reports` + `home_arrivals`; `MemberWithStatus` agrega `hasReportedToday` + `lastReportedAt`
+- **GPS en DayActivitySheet solo para admins**: `getTodayGroupActivity(groupId, isCaptain)` filtra columna `location` a nivel de query
+- **Pull-to-refresh mantiene grupo activo**: `useGroupStore.getState().activeGroupId` dentro del callback (no stale closure)
+- **CTA en home sin botones**: cuando capitán tiene grupo sin botones, muestra card punteado "Crear primer botón" → navega a `/(app)/group/buttons`
 
 ### Funcionalidades pendientes
 - Invitaciones: generar código para capitanes (`app/(app)/group/invite.tsx`) — pantalla `join.tsx` ya existe
@@ -554,6 +562,16 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 | `report_date` | `date` | Fecha local del reporte |
 | `created_at` | `timestamptz` | |
 
+#### `coe_arrivals`
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `user_id` | `uuid` | FK → `users.id` |
+| `group_id` | `uuid` | FK → `groups.id` |
+| `location` | `geography(POINT, 4326)` | GPS al pulsar (opcional) |
+| `report_date` | `date` | Fecha local del reporte |
+| `created_at` | `timestamptz` | |
+
 ### Migraciones
 - ✓ `001_initial_schema.sql`
 - ✓ `002_add_group_delete_policy.sql`
@@ -566,7 +584,9 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - ✓ `009_allow_multiple_gps_buttons.sql`
 - ✓ `010_home_arrivals.sql`
 - ✓ `011_promote_member_policy.sql` — política RLS para que capitanes promuevan miembros
-- ✓ `012_revoke_captain_policy.sql` — agrega `promoted_by`/`promoted_at` a `group_members`; dos políticas UPDATE separadas: promoción (cualquier admin) y revocación (solo creador del grupo)
+- ✓ `012_revoke_captain_policy.sql` — agrega `promoted_by`/`promoted_at` a `group_members`
+- ✓ `013_coe_arrivals.sql` — tabla `coe_arrivals` + RLS + Realtime
+- ✓ `014_group_members_delete_policies.sql` — políticas RLS DELETE para auto-salida y expulsión por capitán
 
 ### Bugs resueltos críticos
 | Bug | Síntoma | Fix |
@@ -580,29 +600,33 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 | PostGIS WKB hex en `location` | Coordenadas no parseables desde JS | `utils/parseWKB.ts` — parser EWKB compartido |
 | Flash de empty state en home | `isLoadingGroups` iniciaba en `false` | `groupStore.ts`: inicializar `isLoading: true` |
 | Verificación de email sin pantalla | Redirigía a URL rota del dashboard | `emailRedirectTo: 'reportate://verify-email'` + pantalla `verify-email.tsx` |
-| FK ambigüedad tras migración 012 | Miembros vacíos, edge function 500, DayActivitySheet vacío, SOS/HomeArrival fallaban | `users!user_id(field)` en TODA query desde `group_members` que embeds `users` |
-| Login spinner permanente (primer inicio) | App bloqueada en `ActivityIndicator` tras login | `hooks/useAuth.ts`: `login()` llama `getUserProfile` + `setUser` + `setLoading(false)` directamente sin esperar `onAuthStateChange` |
-| Splash Android 12+ logo diminuto | Logo aparece como ícono de ~40px en pantalla | `expo-splash-screen v31` usa API nativa del SO: imagen cuadrada 1024×1024 + `imageWidth: 350` en plugin; requiere nuevo build |
-| DayActivitySheet no scrollea | Lista se recorta pero no es scrolleable | `content` style: `maxHeight: 420` → `flex: 1` + `minHeight: 180`. FlatList necesita padre con altura definida para activar scroll |
-| Pull-to-refresh cambia grupo activo | Siempre vuelve al primer grupo al refrescar | `loadGroups` useCallback capturaba `activeGroupId = null` (stale closure). Fix: `useGroupStore.getState().activeGroupId` dentro del callback |
-| "Sin reporte hoy" siempre fijo | `journeyStatus` siempre `'none'` porque botones de jornada fueron removidos de home | `getGroupMembers` consulta `custom_reports` + `home_arrivals` en paralelo; `MemberWithStatus` agrega `hasReportedToday` + `lastReportedAt` |
+| FK ambigüedad tras migración 012 | Miembros vacíos, edge function 500, DayActivitySheet vacío | `users!user_id(field)` en TODA query desde `group_members` que embeds `users` |
+| Login spinner permanente (primer inicio) | App bloqueada en `ActivityIndicator` tras login | `hooks/useAuth.ts`: `login()` llama `getUserProfile` + `setUser` + `setLoading(false)` directamente |
+| Splash Android 12+ máscara circular | Logo cortado por máscara circular de ícono adaptativo | Cambiar a `resizeMode: "cover"` en plugin (sin `imageWidth`) → imagen de pantalla completa sin máscara |
+| DayActivitySheet no scrollea | Lista se recorta sin scroll | `content`: `maxHeight: 420` → `flex: 1`; sheet: `maxHeight: '82%'` → `height: '82%'` |
+| Pull-to-refresh cambia grupo activo | Siempre vuelve al primer grupo | `useGroupStore.getState().activeGroupId` dentro del callback (stale closure fix) |
+| "Sin reporte hoy" siempre fijo | `journeyStatus` siempre `'none'` | `getGroupMembers` consulta `custom_reports` + `home_arrivals` en paralelo |
+| Splash 30s al reabrir tras 20+ min | `getSession()` tarda; splash espera a `getUserProfile` | `setLoading(false)` movido al `.then()` antes del `await getUserProfile` en `useAuth.ts` |
+| Skeleton eterno en home tras safety timer | `loadGroups(null)` no llamaba `setLoadingGroups(false)` | Agregar `setLoadingGroups(false)` antes del early-return en `useGroup.ts` |
+| Flash "Sin grupo" mientras carga perfil | Condición de skeleton no contemplaba `user=null` | Condición cambiada a `(isLoadingGroups \|\| !user) && groups.length === 0` en `home.tsx` |
 
 ### Cuentas de usuario en DB
 - `e5073812...` → dineroleo8@gmail.com ("Daniel Ramos")
 - `24ed50f3...` → dineroleoayd48@gmail.com ("daniel") ← cuenta activa en el teléfono
 
 ### Notas operativas Supabase
-- Rate limit de emails: 3/hora en plan free. Para desarrollo, desactivar "Confirm email" en Auth → Providers → Email
+- **SMTP**: configurado con Resend (`smtp.resend.com:465`, user=`resend`, sender=`onboarding@resend.dev`). `RESEND_API_KEY` en `.env`. Sin límite de emails. Para producción con dominio propio: verificar dominio en Resend y actualizar `smtp_admin_email` vía Management API.
 - `Service role key` bloqueada desde entornos externos — usar SQL Editor del dashboard para queries admin
 - Para ver emails de usuarios: `SELECT u.full_name, a.email FROM public.users u JOIN auth.users a ON a.id = u.id`
 - Variables de entorno EAS están en environment "production" como tipo "secret" — tienen prioridad sobre `.env` local
-- Para cambiar clave: `eas env:update production --variable-name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "clave" --visibility secret --non-interactive`
+- Para cambiar clave EAS: `eas env:update production --variable-name NOMBRE --value "valor" --visibility secret --non-interactive`
+- Management API usa `SUPABASE_ACCESS_TOKEN` del `.env` (no `config.js`)
 
 ### Notas operativas — Splash Screen (Android)
-- `expo-splash-screen v31` (SDK 54) en Android 12+ usa la API nativa del SO: muestra un ícono centrado, NO imagen de pantalla completa
-- La imagen debe ser **cuadrada** (1024×1024) con el logo ocupando ~50–60% del frame
-- `imageWidth: 350` en el plugin controla el tamaño del ícono en dp (~88% del ancho en teléfonos estándar)
-- `resizeMode: "contain"` es correcto para imagen cuadrada en contenedor cuadrado
+- **`resizeMode: "cover"`** (sin `imageWidth`) en el plugin `expo-splash-screen` → imagen de pantalla completa, sin máscara de ícono adaptativo
+- **`resizeMode: "contain"` + `imageWidth`** → Android trata la imagen como ícono adaptativo con máscara circular → NO usar para splash con texto
+- Imagen debe ser cuadrada 1024×1024. Logo R ocupa `fontSizeR = size * 0.65` del canvas
+- Posiciones actuales en `scripts/generate-logo.js`: `yR = 0.67`, `yTag = 0.82`, `fontSizeTag = 0.07`
 - Regenerar imágenes: `node scripts/generate-logo.js`
 - Todo cambio de splash requiere **nueva build nativa** — no se puede aplicar por OTA
 
@@ -612,13 +636,13 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 eas build --platform android --profile preview
 
 # Desplegar Edge Function
-SUPABASE_ACCESS_TOKEN=<token> npx supabase functions deploy send-notification --project-ref msokvacqoptnanyamyoc
+npx supabase functions deploy send-notification --project-ref msokvacqoptnanyamyoc
 
 # Recargar caché PostgREST (ejecutar en SQL Editor de Supabase)
 NOTIFY pgrst, 'reload schema';
 
-# SQL via Management API (desde Node.js con config.js en raíz)
-node -e "const {ACCESS_TOKEN,PROJECT_REF}=require('./config.js'); fetch('https://api.supabase.com/v1/projects/'+PROJECT_REF+'/database/query',{method:'POST',headers:{'Authorization':'Bearer '+ACCESS_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({query:'SELECT 1'})}).then(r=>r.json()).then(console.log)"
+# Management API desde .env
+node -e "require('dotenv').config(); fetch('https://api.supabase.com/v1/projects/msokvacqoptnanyamyoc/config/auth',{method:'PATCH',headers:{'Authorization':'Bearer '+process.env.SUPABASE_ACCESS_TOKEN,'Content-Type':'application/json'},body:JSON.stringify({...})}).then(r=>r.json()).then(console.log)"
 ```
 
 ---
