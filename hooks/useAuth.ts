@@ -4,8 +4,17 @@ import { supabase } from '@/services/supabase/client';
 import { getUserProfile, signIn, signOut, signUp, resetPassword } from '@/services/supabase/auth';
 import { registerForPushNotifications } from '@/services/notifications/registerToken';
 
+async function fetchUserProfile(userId: string, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    const profile = await getUserProfile(userId);
+    if (profile) return profile;
+    if (i < retries - 1) await new Promise((r) => setTimeout(r, 3000));
+  }
+  return null;
+}
+
 export function useAuth() {
-  const { session, user, isLoading, setSession, setUser, setLoading, clear } = useAuthStore();
+  const { session, user, isLoading, setSession, setUser, setLoading, setLoadingUser, clear } = useAuthStore();
 
   useEffect(() => {
     let resolved = false;
@@ -26,12 +35,13 @@ export function useAuth() {
         setSession(data.session);
         setLoading(false);
         if (data.session?.user) {
-          const profile = await getUserProfile(data.session.user.id);
-          setUser(profile);
+          const profile = await fetchUserProfile(data.session.user.id);
+          if (profile) setUser(profile);
         }
+        setLoadingUser(false);
       })
       .catch(() => {
-        // silent — onAuthStateChange maneja la recuperación
+        setLoadingUser(false);
       })
       .finally(() => {
         if (!resolved) {
@@ -49,14 +59,16 @@ export function useAuth() {
       }
       setSession(newSession);
       if (newSession?.user) {
-        const profile = await getUserProfile(newSession.user.id);
-        setUser(profile);
+        const profile = await fetchUserProfile(newSession.user.id);
+        if (profile) setUser(profile);
+        setLoadingUser(false);
         setLoading(false);
         if (profile) {
           registerForPushNotifications(profile.id).catch((e) => console.warn('[Push] Token registration failed:', e));
         }
       } else {
         setUser(null);
+        setLoadingUser(false);
         setLoading(false);
       }
     });

@@ -166,6 +166,9 @@ export const STRINGS = {
     NOTIFICATION_DENIED: 'Activa las notificaciones en configuración',
     JOURNEY_ALREADY_STARTED: 'Ya iniciaste tu jornada hoy',
     NO_ACTIVE_JOURNEY: 'Debes iniciar tu jornada primero',
+    CONNECTION_ERROR_TITLE: 'Sin conexión',
+    CONNECTION_ERROR_BODY: 'No se pudo cargar tu perfil. Verifica tu conexión e intenta de nuevo.',
+    RETRY: 'Reintentar',
   },
   ACTIVITY_SHEET: {
     TITLE: 'Actividad del día',

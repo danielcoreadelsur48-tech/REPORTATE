@@ -25,6 +25,7 @@ import { useReportButtons } from '@/hooks/useReportButtons';
 import { ReportButtonWithState } from '@/types';
 import { Colors, Typography, Spacing, Radius, Shadow } from '@/constants/theme';
 import { STRINGS } from '@/constants/strings';
+import { supabase } from '@/services/supabase/client';
 import { requestLocationPermission, getCurrentLocation } from '@/services/location/getCurrentLocation';
 import { sendGroupNotification } from '@/services/notifications/sendNotification';
 import { insertHomeArrival } from '@/services/supabase/reportButtons';
@@ -32,7 +33,7 @@ import { insertHomeArrival } from '@/services/supabase/reportButtons';
 export default function HomeScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
-  const { user } = useAuthStore();
+  const { user, isLoadingUser } = useAuthStore();
   const { groups, activeGroupId, loadGroups, isLoadingGroups } = useGroup();
   const [showPicker, setShowPicker] = useState(false);
   const activeGroup = groups.find((g) => g.id === activeGroupId);
@@ -127,11 +128,33 @@ export default function HomeScreen() {
           <Image source={require('@/assets/images/icon.png')} style={styles.logo} />
         </View>
 
-        {(isLoadingGroups || !user) && groups.length === 0 ? (
+        {(isLoadingGroups || isLoadingUser) && groups.length === 0 ? (
           <View style={styles.skeletonContainer}>
             <Skeleton height={56} borderRadius={Radius.xl} />
             <Skeleton height={56} borderRadius={Radius.xl} />
             <Skeleton height={56} borderRadius={Radius.xl} />
+          </View>
+        ) : !isLoadingUser && !user ? (
+          <View style={styles.noGroupContainer}>
+            <View style={[styles.noGroupIcon, { backgroundColor: isDark ? Colors.neutral[800] : Colors.neutral[100] }]}>
+              <Ionicons name="wifi-outline" size={56} color={Colors.neutral[400]} />
+            </View>
+            <Text style={[styles.noGroupTitle, { color: textColor }]}>
+              {STRINGS.ERRORS.CONNECTION_ERROR_TITLE}
+            </Text>
+            <Text style={[styles.noGroupSubtitle, { color: subtextColor }]}>
+              {STRINGS.ERRORS.CONNECTION_ERROR_BODY}
+            </Text>
+            <TouchableOpacity
+              onPress={() => supabase.auth.refreshSession()}
+              accessibilityRole="button"
+              accessibilityLabel={STRINGS.ERRORS.RETRY}
+              style={[styles.actionBtn, styles.actionBtnPrimary]}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="refresh-outline" size={22} color={Colors.text.inverse} />
+              <Text style={styles.actionBtnText}>{STRINGS.ERRORS.RETRY}</Text>
+            </TouchableOpacity>
           </View>
         ) : groups.length === 0 ? (
           <View style={styles.noGroupContainer}>
