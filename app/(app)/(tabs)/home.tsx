@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useGroup } from '@/hooks/useGroup';
 import { useReportButtons } from '@/hooks/useReportButtons';
 import { ReportButtonWithState } from '@/types';
+import { DBUser } from '@/types/database';
 import { Colors, Typography, Spacing, Radius, Shadow } from '@/constants/theme';
 import { STRINGS } from '@/constants/strings';
 import { supabase } from '@/services/supabase/client';
@@ -33,7 +34,7 @@ import { insertHomeArrival } from '@/services/supabase/reportButtons';
 export default function HomeScreen() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
-  const { user, isLoadingUser } = useAuthStore();
+  const { user, isLoadingUser, session, setLoadingUser, setUser } = useAuthStore();
   const { groups, activeGroupId, loadGroups, isLoadingGroups } = useGroup();
   const [showPicker, setShowPicker] = useState(false);
   const activeGroup = groups.find((g) => g.id === activeGroupId);
@@ -50,6 +51,36 @@ export default function HomeScreen() {
       loadButtons();
     }
   }, [activeGroupId, loadButtons]);
+
+  const autoRetried = useRef(false);
+
+  const handleRetry = useCallback(async () => {
+    if (!session?.user) return;
+    setLoadingUser(true);
+    try {
+      const { data } = await supabase.auth.refreshSession();
+      const userId = data.session?.user?.id ?? session.user.id;
+      for (let i = 0; i < 3; i++) {
+        const { data: profileData } = await supabase
+          .from('users').select('*').eq('id', userId).single();
+        if (profileData) {
+          setUser(profileData as DBUser);
+          setLoadingUser(false);
+          return;
+        }
+        if (i < 2) await new Promise((r) => setTimeout(r, 2000));
+      }
+    } catch {}
+    setLoadingUser(false);
+  }, [session]);
+
+  useEffect(() => {
+    if (!isLoadingUser && !user && session?.user && !autoRetried.current) {
+      autoRetried.current = true;
+      const timer = setTimeout(() => handleRetry(), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoadingUser, user, session, handleRetry]);
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -146,7 +177,7 @@ export default function HomeScreen() {
               {STRINGS.ERRORS.CONNECTION_ERROR_BODY}
             </Text>
             <TouchableOpacity
-              onPress={() => supabase.auth.refreshSession()}
+              onPress={handleRetry}
               accessibilityRole="button"
               accessibilityLabel={STRINGS.ERRORS.RETRY}
               style={[styles.actionBtn, styles.actionBtnPrimary]}
