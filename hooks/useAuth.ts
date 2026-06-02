@@ -23,6 +23,7 @@ export function useAuth() {
       if (!resolved) {
         resolved = true;
         setLoading(false);
+        setLoadingUser(false);
       }
     }, 10000);
 
