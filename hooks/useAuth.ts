@@ -4,11 +4,14 @@ import { supabase } from '@/services/supabase/client';
 import { getUserProfile, signIn, signOut, signUp, resetPassword } from '@/services/supabase/auth';
 import { registerForPushNotifications } from '@/services/notifications/registerToken';
 
-async function fetchUserProfile(userId: string, retries = 3) {
+async function fetchUserProfile(userId: string, retries = 2) {
   for (let i = 0; i < retries; i++) {
-    const profile = await getUserProfile(userId);
+    const profile = await Promise.race([
+      getUserProfile(userId),
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 4000)),
+    ]);
     if (profile) return profile;
-    if (i < retries - 1) await new Promise((r) => setTimeout(r, 3000));
+    if (i < retries - 1) await new Promise((r) => setTimeout(r, 1000));
   }
   return null;
 }
@@ -20,11 +23,8 @@ export function useAuth() {
     let resolved = false;
 
     const safetyTimer = setTimeout(() => {
-      if (!resolved) {
-        resolved = true;
-        setLoading(false);
-        setLoadingUser(false);
-      }
+      setLoading(false);
+      setLoadingUser(false);
     }, 10000);
 
     supabase.auth.getSession()
