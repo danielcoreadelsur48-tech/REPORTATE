@@ -170,6 +170,13 @@ export const STRINGS = {
     CONNECTION_ERROR_BODY: 'No se pudo cargar tu perfil. Verifica tu conexión e intenta de nuevo.',
     RETRY: 'Reintentar',
   },
+  COE_BUTTON: {
+    LABEL: 'En COE',
+    NOTIFICATION_TITLE: '🏢 Llegada al COE',
+    NOTIFICATION_BODY: '{name} ha llegado al COE',
+    SUCCESS_TITLE: '¡Listo!',
+    SUCCESS_BODY: 'Tu grupo fue notificado de tu llegada al COE',
+  },
   ACTIVITY_SHEET: {
     TITLE: 'Actividad del día',
     TAB_REPORTS: 'Reportes',
