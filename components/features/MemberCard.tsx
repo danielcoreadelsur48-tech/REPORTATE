@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: Typography.size.base,
     fontWeight: Typography.weight.semibold,
-    color: Colors.text.primary,
+    color: Colors.neutral[0],
     flex: 1,
   },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing[2] },

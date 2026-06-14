@@ -53,6 +53,7 @@ export function useAuth() {
       });
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, newSession) => {
+      if (event === 'INITIAL_SESSION') return;
       if (event === 'TOKEN_REFRESHED' && !newSession) {
         clear();
         setLoading(false);
@@ -97,7 +98,19 @@ export function useAuth() {
   }
 
   async function register(email: string, password: string, fullName: string) {
-    await signUp(email, password, fullName);
+    const data = await signUp(email, password, fullName);
+    if (data?.session) {
+      setLoading(true);
+      setSession(data.session);
+      const profile = await getUserProfile(data.session.user.id);
+      setUser(profile);
+      setLoading(false);
+      if (profile) {
+        registerForPushNotifications(profile.id).catch((e) =>
+          console.warn('[Push] Token registration failed:', e)
+        );
+      }
+    }
   }
 
   async function logout() {
