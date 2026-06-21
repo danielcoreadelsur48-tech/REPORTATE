@@ -26,7 +26,7 @@ export const STRINGS = {
     VERIFY_EMAIL_SUBTITLE: 'Tu cuenta está lista. Ya puedes iniciar sesión.',
     VERIFY_EMAIL_BUTTON: 'Ir al inicio de sesión',
     REGISTER_SUCCESS_TITLE: '¡Cuenta creada!',
-    REGISTER_SUCCESS_BODY: 'Te enviamos un enlace de verificación. Ábrelo desde tu teléfono para activar tu cuenta.',
+    REGISTER_SUCCESS_BODY: 'Tu cuenta ha sido creada exitosamente.',
   },
   HOME: {
     TITLE: 'Mi Jornada',
@@ -178,6 +178,16 @@ export const STRINGS = {
     NO_REPORT_TODAY: 'Sin reporte hoy',
     SOS_ACTIVE: 'Emergencia activa',
     SOS_RESOLVED: 'Resuelta',
+  },
+  NOTIFICATIONS_SCREEN: {
+    TITLE: 'Alertas',
+    TAB_LABEL: 'Alertas',
+    EMPTY_TITLE: 'Sin notificaciones',
+    EMPTY_DESC: 'Las alertas de tu grupo aparecerán aquí',
+    CLEAR_ALL: 'Borrar todo',
+    CLEAR_CONFIRM_TITLE: '¿Borrar todas las alertas?',
+    CLEAR_CONFIRM_CANCEL: 'Cancelar',
+    CLEAR_CONFIRM_OK: 'Borrar',
   },
   COMMON: {
     LOADING: 'Cargando...',

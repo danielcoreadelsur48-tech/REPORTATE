@@ -105,3 +105,13 @@ export interface DBHomeArrival {
   location: string | null;
   created_at: string;
 }
+
+export interface StoredNotification {
+  id: string;
+  type: NotificationType | 'UNKNOWN';
+  title: string;
+  body: string;
+  receivedAt: string;
+  isRead: boolean;
+  data: Record<string, unknown>;
+}

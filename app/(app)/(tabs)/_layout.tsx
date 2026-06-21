@@ -2,10 +2,13 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'react-native';
 import { Colors } from '@/constants/theme';
+import { useNotificationStore } from '@/store/notificationStore';
+import { STRINGS } from '@/constants/strings';
 
 export default function TabsLayout() {
   const scheme = useColorScheme();
   const isDark = scheme === 'dark';
+  const unreadCount = useNotificationStore((s) => s.unreadCount);
 
   const tabBarBg = isDark ? Colors.surface.dark : Colors.surface.light;
   const activeTint = Colors.primary[500];
@@ -35,6 +38,23 @@ export default function TabsLayout() {
           title: 'Grupo',
           tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
           tabBarAccessibilityLabel: 'Tab Grupo',
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          title: STRINGS.NOTIFICATIONS_SCREEN.TAB_LABEL,
+          tabBarIcon: ({ color, size }) => <Ionicons name="notifications" size={size} color={color} />,
+          tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: Colors.danger.DEFAULT,
+            color: Colors.neutral[0],
+            fontSize: 10,
+            minWidth: 16,
+            height: 16,
+            lineHeight: 16,
+          },
+          tabBarAccessibilityLabel: 'Tab Alertas',
         }}
       />
       <Tabs.Screen

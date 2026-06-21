@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { Subscription } from 'expo-notifications';
+import { useNotificationStore } from '@/store/notificationStore';
+import { NotificationType } from '@/types/database';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -24,9 +26,19 @@ export function useNotifications(onReceive?: (notification: Notifications.Notifi
   const receivedSub = useRef<Subscription>();
 
   useEffect(() => {
-    if (onReceive) {
-      receivedSub.current = Notifications.addNotificationReceivedListener(onReceive);
-    }
+    receivedSub.current = Notifications.addNotificationReceivedListener((notification) => {
+      const { content, identifier } = notification.request;
+      useNotificationStore.getState().add({
+        id: identifier,
+        type: (content.data?.type as NotificationType) ?? 'UNKNOWN',
+        title: content.title ?? '',
+        body: content.body ?? '',
+        receivedAt: new Date().toISOString(),
+        isRead: false,
+        data: (content.data as Record<string, unknown>) ?? {},
+      });
+      onReceive?.(notification);
+    });
     return () => {
       receivedSub.current?.remove();
     };
