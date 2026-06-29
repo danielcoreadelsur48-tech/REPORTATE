@@ -37,7 +37,12 @@ export function useAuth() {
         setLoading(false);
         if (data.session?.user) {
           const profile = await fetchUserProfile(data.session.user.id);
-          if (profile) setUser(profile);
+          if (profile) {
+            setUser(profile);
+            registerForPushNotifications(profile.id).catch((e) =>
+              console.warn('[Push] Token registration failed:', e)
+            );
+          }
         }
         setLoadingUser(false);
       })

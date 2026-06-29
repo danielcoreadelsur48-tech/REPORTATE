@@ -28,6 +28,7 @@ export function useNotifications(onReceive?: (notification: Notifications.Notifi
   useEffect(() => {
     receivedSub.current = Notifications.addNotificationReceivedListener((notification) => {
       const { content, identifier } = notification.request;
+      if (!content.title && !content.body) return;
       useNotificationStore.getState().add({
         id: identifier,
         type: (content.data?.type as NotificationType) ?? 'UNKNOWN',
