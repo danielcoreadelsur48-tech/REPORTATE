@@ -484,7 +484,7 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 
 ---
 
-## Estado Actual del Proyecto (2026-05-30, sesión 6)
+## Estado Actual del Proyecto (2026-06-07, sesión 9)
 
 ### Infraestructura
 - **Supabase project**: `msokvacqoptnanyamyoc` (plan free, org "Noland")
@@ -493,14 +493,16 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 
 ### Ramas Git
 - `master` — base, sin tocar
-- `COE` — rama de desarrollo activa (todas las features desde sesión 5)
-- `final1` — igual que `COE` pero con el **botón COE eliminado de `home.tsx`** (versión de distribución)
+- `COE` — rama de desarrollo (con botón COE)
+- `final1` — rama de distribución activa (**sin botón COE**); `versionCode: 2` en `app.json`
+- `coefinal` — distribución con botón COE (igual que `COE` pero sin features de dev)
 
-### Build activo
-- Perfil `preview` (APK standalone, sin dev client, sin Metro)
-- Comando: `eas build --platform android --profile preview`
+### Builds
+- **APK desarrollo**: perfil `preview` → `eas build --platform android --profile preview`
+- **AAB producción**: perfil `production` → `eas build --platform android --profile production`
 - Push notifications **no** dependen del WiFi — llegan por internet (FCM → Expo → dispositivo)
 - OTA updates configurado (`expo-updates` + EAS Update)
+- `versionCode` actual en `final1`: **2** (versionCode 1 fue subido a prueba interna)
 
 ### Funcionalidades implementadas ✓
 - Autenticación: login, registro, logout, sesión persistente
@@ -520,6 +522,14 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - **GPS en DayActivitySheet solo para admins**: `getTodayGroupActivity(groupId, isCaptain)` filtra columna `location` a nivel de query
 - **Pull-to-refresh mantiene grupo activo**: `useGroupStore.getState().activeGroupId` dentro del callback (no stale closure)
 - **CTA en home sin botones**: cuando capitán tiene grupo sin botones, muestra card punteado "Crear primer botón" → navega a `/(app)/group/buttons`
+
+### Google Play Store
+- App creada en Play Console bajo cuenta `danielcoreadelsur48@gmail.com`
+- Política de privacidad: `https://danielcoreadelsur48-tech.github.io/REPORTATE/privacy-policy.html`
+- AAB versión 2 subido a **prueba cerrada**: `https://expo.dev/artifacts/eas/3uBcq885kQuFfmuuHdPirJ.aab`
+- `testers.csv` generado en raíz con los 18 emails de usuarios Supabase (sin encabezado)
+- ID de publicidad declarado: **No** (app no usa AdMob ni SDKs de anuncios)
+- **Pendiente**: subir `testers.csv` en Play Console → Prueba cerrada → Testers; completar cuestionario IARC; declaración de datos de privacidad; capturas de pantalla; 14 días de prueba cerrada antes de producción
 
 ### Funcionalidades pendientes
 - Invitaciones: generar código para capitanes (`app/(app)/group/invite.tsx`) — pantalla `join.tsx` ya existe
@@ -609,6 +619,9 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 | Splash 30s al reabrir tras 20+ min | `getSession()` tarda; splash espera a `getUserProfile` | `setLoading(false)` movido al `.then()` antes del `await getUserProfile` en `useAuth.ts` |
 | Skeleton eterno en home tras safety timer | `loadGroups(null)` no llamaba `setLoadingGroups(false)` | Agregar `setLoadingGroups(false)` antes del early-return en `useGroup.ts` |
 | Flash "Sin grupo" mientras carga perfil | Condición de skeleton no contemplaba `user=null` | Condición cambiada a `(isLoadingGroups \|\| !user) && groups.length === 0` en `home.tsx` |
+| Skeleton eterno al reabrir tras 1h+ (raíz) | `fetchUserProfile` sin timeout → cuelga minutos | `Promise.race` con 4s timeout por intento + safetyTimer incondicional (llama `setLoadingUser(false)` siempre a los 10s) |
+| "Reintentar" no hacía nada | `refreshSession()` sin await, sin feedback visual | `handleRetry` en `home.tsx` con `setLoadingUser(true)` + auto-retry via `useRef(false)` + `useEffect` (una sola vez) |
+| Splash bloqueado durante refresh de token | `hideAsync()` esperaba `isLoading=false` | Cap de 2s en `app/_layout.tsx` via `setTimeout(() => SplashScreen.hideAsync(), 2000)` |
 
 ### Cuentas de usuario en DB
 - `e5073812...` → dineroleo8@gmail.com ("Daniel Ramos")
