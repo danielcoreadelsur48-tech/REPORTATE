@@ -44,7 +44,7 @@ export default function RegisterScreen() {
       Alert.alert(
         STRINGS.AUTH.REGISTER_SUCCESS_TITLE,
         STRINGS.AUTH.REGISTER_SUCCESS_BODY,
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+        [{ text: 'OK', onPress: () => router.replace('/(app)/(tabs)/home') }]
       );
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : STRINGS.ERRORS.GENERIC);
