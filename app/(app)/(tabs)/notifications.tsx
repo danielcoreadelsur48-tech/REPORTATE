@@ -1,81 +1,73 @@
-import React, { useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { useNotificationStore } from '@/store/notificationStore';
-import { NotificationItem } from '@/components/features/NotificationItem';
+import { useGroupStore } from '@/store/groupStore';
+import { DayActivityContent } from '@/components/features/DayActivityContent';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Colors, Typography, Spacing } from '@/constants/theme';
 import { STRINGS } from '@/constants/strings';
 
 export default function NotificationsScreen() {
-  const notifications = useNotificationStore((s) => s.notifications);
-  const markAllRead = useNotificationStore((s) => s.markAllRead);
-  const clearAll = useNotificationStore((s) => s.clearAll);
+  const [isFocused, setIsFocused] = useState(false);
+  const groups = useGroupStore((s) => s.groups);
+  const activeGroupId = useGroupStore((s) => s.activeGroupId);
+  const activeGroup = groups.find((g) => g.id === activeGroupId);
+  const isCaptain = activeGroup?.role === 'captain';
+  const isDark = useColorScheme() === 'dark';
 
   useFocusEffect(
     useCallback(() => {
-      markAllRead();
-    }, [markAllRead]),
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
   );
 
-  function handleClearAll() {
-    Alert.alert(
-      STRINGS.NOTIFICATIONS_SCREEN.CLEAR_CONFIRM_TITLE,
-      undefined,
-      [
-        { text: STRINGS.NOTIFICATIONS_SCREEN.CLEAR_CONFIRM_CANCEL, style: 'cancel' },
-        { text: STRINGS.NOTIFICATIONS_SCREEN.CLEAR_CONFIRM_OK, style: 'destructive', onPress: clearAll },
-      ],
-    );
-  }
-
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: isDark ? Colors.background.dark : Colors.background.light }]}
+      edges={['top']}
+    >
       <View style={styles.header}>
-        <Text style={styles.title}>{STRINGS.NOTIFICATIONS_SCREEN.TITLE}</Text>
-        {notifications.length > 0 && (
-          <TouchableOpacity onPress={handleClearAll} accessibilityLabel={STRINGS.NOTIFICATIONS_SCREEN.CLEAR_ALL}>
-            <Text style={styles.clearBtn}>{STRINGS.NOTIFICATIONS_SCREEN.CLEAR_ALL}</Text>
-          </TouchableOpacity>
-        )}
+        <Text style={[styles.title, { color: isDark ? Colors.neutral[0] : Colors.text.primary }]}>
+          {STRINGS.NOTIFICATIONS_SCREEN.TITLE}
+        </Text>
+        <Text style={styles.subtitle}>{STRINGS.ACTIVITY_SHEET.TITLE}</Text>
       </View>
 
-      {notifications.length === 0 ? (
+      {!activeGroupId ? (
         <EmptyState
           icon="notifications-outline"
           title={STRINGS.NOTIFICATIONS_SCREEN.EMPTY_TITLE}
           description={STRINGS.NOTIFICATIONS_SCREEN.EMPTY_DESC}
         />
       ) : (
-        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-          {notifications.map((n) => (
-            <NotificationItem key={n.id} item={n} />
-          ))}
-        </ScrollView>
+        <View style={styles.content}>
+          <DayActivityContent groupId={activeGroupId} isCaptain={isCaptain ?? false} isActive={isFocused} />
+        </View>
       )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background.light },
+  container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing[4],
     paddingVertical: Spacing[3],
   },
   title: {
     fontSize: Typography.size['2xl'],
     fontWeight: Typography.weight.bold,
-    color: Colors.text.primary,
   },
-  clearBtn: {
+  subtitle: {
     fontSize: Typography.size.sm,
-    color: Colors.danger.DEFAULT,
-    fontWeight: Typography.weight.medium,
+    color: Colors.text.secondary,
+    marginTop: 2,
   },
-  list: { paddingTop: Spacing[2], paddingBottom: Spacing[8] },
+  content: {
+    flex: 1,
+    paddingHorizontal: Spacing[5],
+    paddingTop: Spacing[2],
+  },
 });
