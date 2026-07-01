@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -25,10 +26,11 @@ const exchangedCodes = new Set<string>();
 
 export default function ResetPasswordScreen() {
   const { resetPasswordConfirm } = useAuth();
-  const { code, error_description } = useLocalSearchParams<{
+  const rawParams = useLocalSearchParams<{
     code?: string;
     error_description?: string;
   }>();
+  const { code, error_description } = rawParams;
 
   const [status, setStatus] = useState<Status>(error_description ? 'error' : 'loading');
   const [errorMsg, setErrorMsg] = useState(error_description ?? '');
@@ -41,6 +43,16 @@ export default function ResetPasswordScreen() {
   const [recoverySession, setRecoverySession] = useState<Session | null>(null);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const addDebug = (line: string) => setDebugInfo((prev) => [...prev, line]);
+
+  // Diagnóstico puro: qué ve la pantalla apenas monta, antes de cualquier lógica.
+  // Redacta el valor del code (token de un solo uso) antes de mostrarlo en pantalla.
+  useEffect(() => {
+    const redactedParams = { ...rawParams, code: rawParams.code ? rawParams.code.slice(0, 8) + '…' : rawParams.code };
+    addDebug(`[raw] useLocalSearchParams = ${JSON.stringify(redactedParams)}`);
+    Linking.getInitialURL().then((url) => {
+      addDebug(`[raw] Linking.getInitialURL() = ${url ? url.replace(/code=[^&]+/, 'code=REDACTED') : 'null'}`);
+    });
+  }, []);
 
   useEffect(() => {
     if (!code) {
@@ -143,6 +155,15 @@ export default function ResetPasswordScreen() {
         <Text style={styles.appName}>REPÓRTATE</Text>
         <ActivityIndicator size="large" color={Colors.primary[500]} />
         <Text style={[styles.subtitle, { marginTop: Spacing[4] }]}>Procesando enlace…</Text>
+        {debugInfo.length > 0 && (
+          <View style={styles.debugBox}>
+            {debugInfo.map((line, i) => (
+              <Text key={i} selectable style={styles.debugText}>
+                {line}
+              </Text>
+            ))}
+          </View>
+        )}
       </View>
     );
   }
