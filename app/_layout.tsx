@@ -10,7 +10,25 @@ import '../global.css';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useDeepLinkStore } from '@/store/deepLinkStore';
 import { NotificationType } from '@/types/database';
+
+function handleAuthDeepLink(rawUrl: string, router: ReturnType<typeof useRouter>) {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return;
+  }
+  const screen = (parsed.hostname || parsed.pathname.replace(/^\//, '')) as 'reset-password' | 'verify-email' | string;
+  const code = parsed.searchParams.get('code');
+  const errorDescription = parsed.searchParams.get('error_description');
+  if (!code && !errorDescription) return;
+  if (screen !== 'reset-password' && screen !== 'verify-email') return;
+
+  useDeepLinkStore.getState().setLink({ screen, code, errorDescription });
+  router.replace(`/(auth)/${screen}` as '/(auth)/reset-password' | '/(auth)/verify-email');
+}
 
 function storeNotificationFromResponse(response: Notifications.NotificationResponse) {
   const { content, identifier } = response.notification.request;
@@ -80,24 +98,15 @@ export default function RootLayout() {
     if (!navigationState?.key || handledInitialUrlRef.current) return;
     handledInitialUrlRef.current = true;
     Linking.getInitialURL().then((url) => {
-      if (!url) return;
-      const parsed = Linking.parse(url);
-      const screen = parsed.path || parsed.hostname;
-      const code = parsed.queryParams?.code as string | undefined;
-      const errorDescription = parsed.queryParams?.error_description as string | undefined;
-      if (!code && !errorDescription) return;
-
-      const params: Record<string, string> = {};
-      if (code) params.code = code;
-      if (errorDescription) params.error_description = errorDescription;
-
-      if (screen === 'reset-password') {
-        router.replace({ pathname: '/(auth)/reset-password', params });
-      } else if (screen === 'verify-email') {
-        router.replace({ pathname: '/(auth)/verify-email', params });
-      }
+      if (url) handleAuthDeepLink(url, router);
     });
   }, [navigationState?.key]);
+
+  // Warm start: app ya estaba viva (foreground o background) y el usuario tocó el link
+  useEffect(() => {
+    const sub = Linking.addEventListener('url', ({ url }) => handleAuthDeepLink(url, router));
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => SplashScreen.hideAsync(), 2000);

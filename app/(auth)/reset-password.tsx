@@ -8,9 +8,8 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import * as Linking from 'expo-linking';
 import type { Session } from '@supabase/supabase-js';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -19,6 +18,7 @@ import { STRINGS } from '@/constants/strings';
 import { supabase } from '@/services/supabase/client';
 import { signOut } from '@/services/supabase/auth';
 import { useAuth } from '@/hooks/useAuth';
+import { useDeepLinkStore } from '@/store/deepLinkStore';
 
 type Status = 'loading' | 'form' | 'success' | 'error';
 
@@ -26,11 +26,8 @@ const exchangedCodes = new Set<string>();
 
 export default function ResetPasswordScreen() {
   const { resetPasswordConfirm } = useAuth();
-  const rawParams = useLocalSearchParams<{
-    code?: string;
-    error_description?: string;
-  }>();
-  const { code, error_description } = rawParams;
+  const code = useDeepLinkStore((s) => s.code);
+  const error_description = useDeepLinkStore((s) => s.errorDescription);
 
   const [status, setStatus] = useState<Status>(error_description ? 'error' : 'loading');
   const [errorMsg, setErrorMsg] = useState(error_description ?? '');
@@ -45,21 +42,15 @@ export default function ResetPasswordScreen() {
   const addDebug = (line: string) => setDebugInfo((prev) => [...prev, line]);
 
   // Diagnóstico puro: qué ve la pantalla apenas monta, antes de cualquier lógica.
-  // Redacta el valor del code (token de un solo uso) antes de mostrarlo en pantalla.
   useEffect(() => {
-    const redactedParams = { ...rawParams, code: rawParams.code ? rawParams.code.slice(0, 8) + '…' : rawParams.code };
-    addDebug(`[raw] useLocalSearchParams = ${JSON.stringify(redactedParams)}`);
-    Linking.getInitialURL().then((url) => {
-      addDebug(`[raw] Linking.getInitialURL() = ${url ? url.replace(/code=[^&]+/, 'code=REDACTED') : 'null'}`);
-    });
+    addDebug(`[raw] deepLinkStore = code=${code ? code.slice(0, 8) + '…' : 'null'} error=${error_description ?? 'null'}`);
   }, []);
 
   useEffect(() => {
     if (!code) {
-      // Sin code en los params: puede ser que Updates.reloadAsync() haya recargado
-      // el JS a mitad del flujo del deep link, perdiendo el param de la ruta aunque
-      // el intercambio ya haya guardado una sesión válida en el storage. Recuperarla.
-      addDebug('[mount] sin code param, buscando sesión ya persistida…');
+      // Sin code en el store del deep link: puede ser un remount posterior a que
+      // ya se haya consumido el code. Revisar si ya hay sesión persistida.
+      addDebug('[mount] sin code en el store, buscando sesión ya persistida…');
       supabase.auth.getSession().then(({ data, error }) => {
         addDebug(
           `[mount] getSession (sin code) -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
@@ -86,6 +77,7 @@ export default function ResetPasswordScreen() {
       addDebug(
         `[mount A] exchange -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
       );
+      useDeepLinkStore.getState().clear();
       if (error) {
         setErrorMsg(error.message);
         setStatus('error');
