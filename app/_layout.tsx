@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
@@ -58,8 +58,10 @@ export default function RootLayout() {
   }, []);
 
   // Cold start: app estaba cerrada, el usuario tocó un link de recuperación/verificación de email
+  const handledInitialUrlRef = useRef(false);
   useEffect(() => {
-    if (!navigationState?.key) return;
+    if (!navigationState?.key || handledInitialUrlRef.current) return;
+    handledInitialUrlRef.current = true;
     Linking.getInitialURL().then((url) => {
       if (!url) return;
       const parsed = Linking.parse(url);

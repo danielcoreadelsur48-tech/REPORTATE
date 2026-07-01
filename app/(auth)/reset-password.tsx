@@ -20,6 +20,8 @@ import { useAuth } from '@/hooks/useAuth';
 
 type Status = 'loading' | 'form' | 'success' | 'error';
 
+const exchangedCodes = new Set<string>();
+
 export default function ResetPasswordScreen() {
   const { resetPasswordConfirm } = useAuth();
   const { code, error_description } = useLocalSearchParams<{
@@ -40,6 +42,11 @@ export default function ResetPasswordScreen() {
 
   useEffect(() => {
     if (!code) return;
+    if (exchangedCodes.has(code)) {
+      setStatus('form');
+      return;
+    }
+    exchangedCodes.add(code);
     supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
       if (error) {
         setErrorMsg(error.message);
