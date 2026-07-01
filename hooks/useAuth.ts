@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/services/supabase/client';
-import { getUserProfile, signIn, signOut, signUp, resetPassword } from '@/services/supabase/auth';
+import { getUserProfile, signIn, signOut, signUp, resetPassword, updatePassword } from '@/services/supabase/auth';
 import { registerForPushNotifications } from '@/services/notifications/registerToken';
 
 async function fetchUserProfile(userId: string, retries = 2) {
@@ -127,5 +127,9 @@ export function useAuth() {
     await resetPassword(email);
   }
 
-  return { session, user, isLoading, login, register, logout, forgotPassword };
+  async function resetPasswordConfirm(newPassword: string) {
+    await updatePassword(newPassword);
+  }
+
+  return { session, user, isLoading, login, register, logout, forgotPassword, resetPasswordConfirm };
 }
