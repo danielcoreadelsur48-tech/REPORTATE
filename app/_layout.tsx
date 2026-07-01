@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
@@ -55,6 +56,29 @@ export default function RootLayout() {
     });
     return () => sub.remove();
   }, []);
+
+  // Cold start: app estaba cerrada, el usuario tocó un link de recuperación/verificación de email
+  useEffect(() => {
+    if (!navigationState?.key) return;
+    Linking.getInitialURL().then((url) => {
+      if (!url) return;
+      const parsed = Linking.parse(url);
+      const screen = parsed.path || parsed.hostname;
+      const code = parsed.queryParams?.code as string | undefined;
+      const errorDescription = parsed.queryParams?.error_description as string | undefined;
+      if (!code && !errorDescription) return;
+
+      const params: Record<string, string> = {};
+      if (code) params.code = code;
+      if (errorDescription) params.error_description = errorDescription;
+
+      if (screen === 'reset-password') {
+        router.replace({ pathname: '/(auth)/reset-password', params });
+      } else if (screen === 'verify-email') {
+        router.replace({ pathname: '/(auth)/verify-email', params });
+      }
+    });
+  }, [navigationState?.key]);
 
   useEffect(() => {
     const timer = setTimeout(() => SplashScreen.hideAsync(), 2000);
