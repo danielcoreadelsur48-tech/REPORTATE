@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import type { Session } from '@supabase/supabase-js';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Colors, Typography, Spacing } from '@/constants/theme';
@@ -39,6 +40,7 @@ export default function ResetPasswordScreen() {
   const [passwordError, setPasswordError] = useState('');
   const [confirmError, setConfirmError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [recoverySession, setRecoverySession] = useState<Session | null>(null);
 
   useEffect(() => {
     if (!code) return;
@@ -47,11 +49,12 @@ export default function ResetPasswordScreen() {
       return;
     }
     exchangedCodes.add(code);
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+    supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
       if (error) {
         setErrorMsg(error.message);
         setStatus('error');
       } else {
+        setRecoverySession(data.session);
         setStatus('form');
       }
     });
@@ -70,6 +73,12 @@ export default function ResetPasswordScreen() {
     }
     setIsSaving(true);
     try {
+      if (recoverySession) {
+        await supabase.auth.setSession({
+          access_token: recoverySession.access_token,
+          refresh_token: recoverySession.refresh_token,
+        });
+      }
       await resetPasswordConfirm(password);
       await signOut();
       setStatus('success');
