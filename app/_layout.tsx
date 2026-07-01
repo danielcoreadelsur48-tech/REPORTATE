@@ -3,6 +3,7 @@ import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
+import * as Updates from 'expo-updates';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import '../global.css';
@@ -35,6 +36,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     useNotificationStore.getState()._hydrate();
+  }, []);
+
+  // Fuerza a bajar y aplicar cualquier OTA pendiente en este mismo lanzamiento,
+  // en vez de esperar al siguiente arranque (comportamiento lazy por defecto).
+  useEffect(() => {
+    if (__DEV__) return;
+    Updates.checkForUpdateAsync()
+      .then((result) => {
+        if (result.isAvailable) {
+          return Updates.fetchUpdateAsync().then(() => Updates.reloadAsync());
+        }
+      })
+      .catch((e) => console.warn('[Updates] check failed:', e));
   }, []);
 
   // Cold start: app estaba cerrada, el usuario tocó la notificación
