@@ -29,11 +29,14 @@ export default function VerifyEmailScreen() {
     }
     if (!accessToken || !refreshToken) return;
     supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ error }) => {
-      useDeepLinkStore.getState().clear();
       if (error) {
+        useDeepLinkStore.getState().clear();
         setErrorMsg(error.message);
         setStatus('error');
       } else {
+        // No limpiar el store todavía: app/index.tsx lo usa para no tratar
+        // esta pantalla como un login real mientras sigue visible. Se limpia
+        // cuando el usuario toca "Ir al inicio de sesión".
         setStatus('success');
       }
     });
@@ -79,7 +82,10 @@ export default function VerifyEmailScreen() {
       <Text style={styles.subtitle}>{STRINGS.AUTH.VERIFY_EMAIL_SUBTITLE}</Text>
       <Button
         label={STRINGS.AUTH.VERIFY_EMAIL_BUTTON}
-        onPress={() => router.replace('/(auth)/login')}
+        onPress={() => {
+          useDeepLinkStore.getState().clear();
+          router.replace('/(auth)/login');
+        }}
         style={styles.button}
       />
     </View>

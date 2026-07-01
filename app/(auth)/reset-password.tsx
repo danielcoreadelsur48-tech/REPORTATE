@@ -75,11 +75,17 @@ export default function ResetPasswordScreen() {
       addDebug(
         `[mount] setSession -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
       );
-      useDeepLinkStore.getState().clear();
       if (error) {
+        useDeepLinkStore.getState().clear();
         setErrorMsg(error.message);
         setStatus('error');
       } else {
+        // OJO: no limpiar el store acá todavía. app/index.tsx usa
+        // deepLinkStore.screen como señal de "hay un flujo de recovery en
+        // curso" para NO tratar esta sesión como un login real y mandar al
+        // usuario a home antes de que llegue a cambiar la contraseña.
+        // Se limpia recién cuando el flujo termina de verdad (signOut en
+        // handleSave, o al salir manualmente de la pantalla de error).
         setRecoverySession(data.session);
         setStatus('form');
       }
@@ -130,6 +136,7 @@ export default function ResetPasswordScreen() {
 
       await resetPasswordConfirm(password);
       await signOut();
+      useDeepLinkStore.getState().clear();
       setStatus('success');
     } catch (err) {
       addDebug(`[save] CATCH -> ${err instanceof Error ? err.message : String(err)}`);
