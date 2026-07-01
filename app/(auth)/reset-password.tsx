@@ -22,11 +22,10 @@ import { useDeepLinkStore } from '@/store/deepLinkStore';
 
 type Status = 'loading' | 'form' | 'success' | 'error';
 
-const exchangedCodes = new Set<string>();
-
 export default function ResetPasswordScreen() {
   const { resetPasswordConfirm } = useAuth();
-  const code = useDeepLinkStore((s) => s.code);
+  const accessToken = useDeepLinkStore((s) => s.accessToken);
+  const refreshToken = useDeepLinkStore((s) => s.refreshToken);
   const error_description = useDeepLinkStore((s) => s.errorDescription);
   const rawLog = useDeepLinkStore((s) => s.rawLog);
 
@@ -43,41 +42,30 @@ export default function ResetPasswordScreen() {
   const addDebug = (line: string) => setDebugInfo((prev) => [...prev, line]);
   const fullLog = [...rawLog, ...debugInfo];
 
-  // Diagnóstico puro: qué ve la pantalla apenas monta, antes de cualquier lógica.
   useEffect(() => {
-    addDebug(`[raw] deepLinkStore = code=${code ? code.slice(0, 8) + '…' : 'null'} error=${error_description ?? 'null'}`);
+    addDebug(
+      `[raw] deepLinkStore = accessToken=${accessToken ? 'YES' : 'null'} refreshToken=${refreshToken ? 'YES' : 'null'} error=${error_description ?? 'null'}`
+    );
   }, []);
 
   useEffect(() => {
-    if (!code) {
-      // Sin code en el store del deep link: puede ser un remount posterior a que
-      // ya se haya consumido el code. Revisar si ya hay sesión persistida.
-      addDebug('[mount] sin code en el store, buscando sesión ya persistida…');
+    if (!accessToken || !refreshToken) {
+      // Sin tokens en el store del deep link: puede ser un remount posterior a que
+      // ya se haya seteado la sesión. Revisar si ya hay una persistida.
+      addDebug('[mount] sin tokens en el store, buscando sesión ya persistida…');
       supabase.auth.getSession().then(({ data, error }) => {
         addDebug(
-          `[mount] getSession (sin code) -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
+          `[mount] getSession (sin tokens) -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
         );
         setRecoverySession(data.session);
         setStatus('form');
       });
       return;
     }
-    if (exchangedCodes.has(code)) {
-      addDebug(`[mount B] dedup path, code=${code.slice(0, 8)}…`);
-      supabase.auth.getSession().then(({ data, error }) => {
-        addDebug(
-          `[mount B] getSession -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
-        );
-        setRecoverySession(data.session);
-        setStatus('form');
-      });
-      return;
-    }
-    exchangedCodes.add(code);
-    addDebug(`[mount A] fresh exchange, code=${code.slice(0, 8)}…`);
-    supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+    addDebug('[mount] seteando sesión con access_token/refresh_token del link…');
+    supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ data, error }) => {
       addDebug(
-        `[mount A] exchange -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
+        `[mount] setSession -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
       );
       useDeepLinkStore.getState().clear();
       if (error) {
@@ -88,7 +76,7 @@ export default function ResetPasswordScreen() {
         setStatus('form');
       }
     });
-  }, [code]);
+  }, [accessToken, refreshToken]);
 
   // Evita que el ticker de auto-refresh intente renovar la sesión de recuperación
   // mientras el usuario escribe: un refresh rechazado por el servidor borra la

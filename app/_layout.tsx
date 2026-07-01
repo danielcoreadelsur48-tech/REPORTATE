@@ -14,7 +14,7 @@ import { useDeepLinkStore } from '@/store/deepLinkStore';
 import { NotificationType } from '@/types/database';
 
 function redactUrl(url: string) {
-  return url.replace(/code=[^&]+/, 'code=REDACTED');
+  return url.replace(/access_token=[^&]+/, 'access_token=REDACTED').replace(/refresh_token=[^&]+/, 'refresh_token=REDACTED');
 }
 
 function handleAuthDeepLink(rawUrl: string, router: ReturnType<typeof useRouter>, source: string) {
@@ -29,13 +29,17 @@ function handleAuthDeepLink(rawUrl: string, router: ReturnType<typeof useRouter>
     return;
   }
   const screen = (parsed.hostname || parsed.pathname.replace(/^\//, '')) as 'reset-password' | 'verify-email' | string;
-  const code = parsed.searchParams.get('code');
-  const errorDescription = parsed.searchParams.get('error_description');
+  // Supabase manda los tokens de sesión en el fragmento (#access_token=...&refresh_token=...&type=recovery),
+  // formato "implicit flow" -- no un ?code= de PKCE. error_description sí puede venir como query normal.
+  const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+  const accessToken = hashParams.get('access_token');
+  const refreshToken = hashParams.get('refresh_token');
+  const errorDescription = parsed.searchParams.get('error_description') || hashParams.get('error_description');
   pushRaw(
-    `[${source}] parsed -> screen=${screen} code=${code ? code.slice(0, 8) + '…' : 'null'} error=${errorDescription ?? 'null'}`
+    `[${source}] parsed -> screen=${screen} accessToken=${accessToken ? 'YES' : 'null'} refreshToken=${refreshToken ? 'YES' : 'null'} error=${errorDescription ?? 'null'}`
   );
-  if (!code && !errorDescription) {
-    pushRaw(`[${source}] no code/error, abortando`);
+  if (!accessToken && !errorDescription) {
+    pushRaw(`[${source}] sin tokens ni error, abortando`);
     return;
   }
   if (screen !== 'reset-password' && screen !== 'verify-email') {
@@ -43,7 +47,7 @@ function handleAuthDeepLink(rawUrl: string, router: ReturnType<typeof useRouter>
     return;
   }
 
-  useDeepLinkStore.getState().setLink({ screen, code, errorDescription });
+  useDeepLinkStore.getState().setLink({ screen, accessToken, refreshToken, errorDescription });
   router.replace(`/(auth)/${screen}` as '/(auth)/reset-password' | '/(auth)/verify-email');
 }
 

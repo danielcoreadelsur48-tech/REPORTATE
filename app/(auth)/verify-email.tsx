@@ -1,28 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '@/components/ui/Button';
 import { Colors, Typography, Spacing } from '@/constants/theme';
 import { STRINGS } from '@/constants/strings';
 import { supabase } from '@/services/supabase/client';
+import { useDeepLinkStore } from '@/store/deepLinkStore';
 
 type Status = 'loading' | 'success' | 'error';
 
 export default function VerifyEmailScreen() {
-  const { code, error_description } = useLocalSearchParams<{
-    code?: string;
-    error_description?: string;
-  }>();
+  const accessToken = useDeepLinkStore((s) => s.accessToken);
+  const refreshToken = useDeepLinkStore((s) => s.refreshToken);
+  const error_description = useDeepLinkStore((s) => s.errorDescription);
 
   const [status, setStatus] = useState<Status>(
-    error_description ? 'error' : code ? 'loading' : 'success'
+    error_description ? 'error' : accessToken ? 'loading' : 'success'
   );
   const [errorMsg, setErrorMsg] = useState(error_description ?? '');
 
   useEffect(() => {
-    if (!code) return;
-    supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+    if (!accessToken || !refreshToken) return;
+    supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ error }) => {
+      useDeepLinkStore.getState().clear();
       if (error) {
         setErrorMsg(error.message);
         setStatus('error');
@@ -30,7 +31,7 @@ export default function VerifyEmailScreen() {
         setStatus('success');
       }
     });
-  }, [code]);
+  }, [accessToken, refreshToken]);
 
   if (status === 'loading') {
     return (
