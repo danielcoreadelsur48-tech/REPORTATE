@@ -1,14 +1,12 @@
 import React, { useEffect } from 'react';
 import { Stack, useRouter, useRootNavigationState } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import * as Linking from 'expo-linking';
 import * as Notifications from 'expo-notifications';
 import { StatusBar } from 'expo-status-bar';
 import { useColorScheme } from 'react-native';
 import '../global.css';
 import { useAuth } from '@/hooks/useAuth';
 import { useNotifications } from '@/hooks/useNotifications';
-import { supabase } from '@/services/supabase/client';
 import { useNotificationStore } from '@/store/notificationStore';
 import { NotificationType } from '@/types/database';
 
@@ -68,18 +66,6 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [isLoading]);
-
-  useEffect(() => {
-    const handleUrl = ({ url }: { url: string }) => {
-      const parsed = Linking.parse(url);
-      const code = parsed.queryParams?.code as string | undefined;
-      if (code) {
-        supabase.auth.exchangeCodeForSession(code);
-      }
-    };
-    const sub = Linking.addEventListener('url', handleUrl);
-    return () => sub.remove();
-  }, []);
 
   return (
     <>
