@@ -30,9 +30,7 @@ export default function ForgotPasswordScreen() {
     setIsLoading(true);
     try {
       await forgotPassword(email.trim());
-      Alert.alert('Correo enviado', STRINGS.AUTH.RESET_SENT, [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      router.push({ pathname: '/(auth)/verify-reset-code', params: { email: email.trim() } });
     } catch (err) {
       Alert.alert('Error', err instanceof Error ? err.message : STRINGS.ERRORS.GENERIC);
     } finally {

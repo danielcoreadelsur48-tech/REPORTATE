@@ -44,6 +44,12 @@ export async function updatePassword(newPassword: string) {
   if (error) throw error;
 }
 
+export async function verifyRecoveryCode(email: string, token: string) {
+  const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+  if (error) throw error;
+  return data;
+}
+
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw error;
