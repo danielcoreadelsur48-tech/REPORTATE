@@ -38,14 +38,17 @@ export default function RootLayout() {
     useNotificationStore.getState()._hydrate();
   }, []);
 
-  // Fuerza a bajar y aplicar cualquier OTA pendiente en este mismo lanzamiento,
-  // en vez de esperar al siguiente arranque (comportamiento lazy por defecto).
+  // Baja cualquier OTA pendiente en este mismo lanzamiento para que esté lista
+  // cuanto antes, pero SIN reloadAsync(): reiniciar el JS a mitad de un flujo
+  // en curso (ej. el intercambio de código de reset-password) lo interrumpe y
+  // pierde el estado. La actualización descargada se aplica sola en el
+  // próximo arranque natural de la app.
   useEffect(() => {
     if (__DEV__) return;
     Updates.checkForUpdateAsync()
       .then((result) => {
         if (result.isAvailable) {
-          return Updates.fetchUpdateAsync().then(() => Updates.reloadAsync());
+          return Updates.fetchUpdateAsync();
         }
       })
       .catch((e) => console.warn('[Updates] check failed:', e));
