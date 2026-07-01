@@ -30,9 +30,7 @@ export default function ResetPasswordScreen() {
     error_description?: string;
   }>();
 
-  const [status, setStatus] = useState<Status>(
-    error_description ? 'error' : code ? 'loading' : 'form'
-  );
+  const [status, setStatus] = useState<Status>(error_description ? 'error' : 'loading');
   const [errorMsg, setErrorMsg] = useState(error_description ?? '');
 
   const [password, setPassword] = useState('');
@@ -45,7 +43,20 @@ export default function ResetPasswordScreen() {
   const addDebug = (line: string) => setDebugInfo((prev) => [...prev, line]);
 
   useEffect(() => {
-    if (!code) return;
+    if (!code) {
+      // Sin code en los params: puede ser que Updates.reloadAsync() haya recargado
+      // el JS a mitad del flujo del deep link, perdiendo el param de la ruta aunque
+      // el intercambio ya haya guardado una sesión válida en el storage. Recuperarla.
+      addDebug('[mount] sin code param, buscando sesión ya persistida…');
+      supabase.auth.getSession().then(({ data, error }) => {
+        addDebug(
+          `[mount] getSession (sin code) -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
+        );
+        setRecoverySession(data.session);
+        setStatus('form');
+      });
+      return;
+    }
     if (exchangedCodes.has(code)) {
       addDebug(`[mount B] dedup path, code=${code.slice(0, 8)}…`);
       supabase.auth.getSession().then(({ data, error }) => {
