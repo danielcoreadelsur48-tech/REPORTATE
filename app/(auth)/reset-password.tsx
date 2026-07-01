@@ -41,18 +41,28 @@ export default function ResetPasswordScreen() {
   const [confirmError, setConfirmError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [recoverySession, setRecoverySession] = useState<Session | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  const addDebug = (line: string) => setDebugInfo((prev) => [...prev, line]);
 
   useEffect(() => {
     if (!code) return;
     if (exchangedCodes.has(code)) {
-      supabase.auth.getSession().then(({ data }) => {
+      addDebug(`[mount B] dedup path, code=${code.slice(0, 8)}…`);
+      supabase.auth.getSession().then(({ data, error }) => {
+        addDebug(
+          `[mount B] getSession -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
+        );
         setRecoverySession(data.session);
         setStatus('form');
       });
       return;
     }
     exchangedCodes.add(code);
+    addDebug(`[mount A] fresh exchange, code=${code.slice(0, 8)}…`);
     supabase.auth.exchangeCodeForSession(code).then(({ data, error }) => {
+      addDebug(
+        `[mount A] exchange -> session=${data.session ? 'YES exp=' + data.session.expires_at : 'NULL'} error=${error?.message ?? 'none'}`
+      );
       if (error) {
         setErrorMsg(error.message);
         setStatus('error');
@@ -87,16 +97,29 @@ export default function ResetPasswordScreen() {
     }
     setIsSaving(true);
     try {
+      addDebug(`[save] recoverySession in state = ${recoverySession ? 'YES exp=' + recoverySession.expires_at : 'NULL'}`);
+
+      const { data: preCheck } = await supabase.auth.getSession();
+      addDebug(`[save] getSession right before setSession -> ${preCheck.session ? 'YES exp=' + preCheck.session.expires_at : 'NULL'}`);
+
       if (recoverySession) {
-        await supabase.auth.setSession({
+        const { data: setData, error: setError } = await supabase.auth.setSession({
           access_token: recoverySession.access_token,
           refresh_token: recoverySession.refresh_token,
         });
+        addDebug(
+          `[save] setSession -> session=${setData.session ? 'YES exp=' + setData.session.expires_at : 'NULL'} error=${setError?.message ?? 'none'}`
+        );
       }
+
+      const { data: postCheck } = await supabase.auth.getSession();
+      addDebug(`[save] getSession right before updateUser -> ${postCheck.session ? 'YES exp=' + postCheck.session.expires_at : 'NULL'}`);
+
       await resetPasswordConfirm(password);
       await signOut();
       setStatus('success');
     } catch (err) {
+      addDebug(`[save] CATCH -> ${err instanceof Error ? err.message : String(err)}`);
       setPasswordError(err instanceof Error ? err.message : STRINGS.ERRORS.GENERIC);
     } finally {
       setIsSaving(false);
@@ -129,6 +152,15 @@ export default function ResetPasswordScreen() {
           onPress={() => router.replace('/(auth)/login')}
           style={styles.button}
         />
+        {debugInfo.length > 0 && (
+          <View style={styles.debugBox}>
+            {debugInfo.map((line, i) => (
+              <Text key={i} selectable style={styles.debugText}>
+                {line}
+              </Text>
+            ))}
+          </View>
+        )}
       </View>
     );
   }
@@ -180,6 +212,15 @@ export default function ResetPasswordScreen() {
           loading={isSaving}
           style={styles.btn}
         />
+        {debugInfo.length > 0 && (
+          <View style={styles.debugBox}>
+            {debugInfo.map((line, i) => (
+              <Text key={i} selectable style={styles.debugText}>
+                {line}
+              </Text>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -225,4 +266,16 @@ const styles = StyleSheet.create({
   formTitle: { fontSize: Typography.size['2xl'], fontWeight: Typography.weight.bold, color: Colors.text.primary },
   formSubtitle: { fontSize: Typography.size.base, color: Colors.text.secondary, marginTop: Spacing[1] },
   btn: { marginTop: Spacing[4] },
+  debugBox: {
+    marginTop: Spacing[6],
+    padding: Spacing[3],
+    backgroundColor: '#1F2937',
+    borderRadius: 8,
+  },
+  debugText: {
+    color: '#FBBF24',
+    fontSize: 10,
+    fontFamily: Typography.family.mono,
+    marginBottom: 2,
+  },
 });
