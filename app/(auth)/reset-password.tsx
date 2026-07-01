@@ -45,7 +45,10 @@ export default function ResetPasswordScreen() {
   useEffect(() => {
     if (!code) return;
     if (exchangedCodes.has(code)) {
-      setStatus('form');
+      supabase.auth.getSession().then(({ data }) => {
+        setRecoverySession(data.session);
+        setStatus('form');
+      });
       return;
     }
     exchangedCodes.add(code);
