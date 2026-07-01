@@ -42,7 +42,7 @@ export default function VerifyResetCodeScreen() {
       setCodeError(STRINGS.ERRORS.GENERIC);
       return;
     }
-    if (code.trim().length !== 6) {
+    if (code.trim().length !== 8) {
       setCodeError(STRINGS.ERRORS.INVALID_RECOVERY_CODE);
       return;
     }
@@ -112,7 +112,7 @@ export default function VerifyResetCodeScreen() {
           value={code}
           onChangeText={setCode}
           keyboardType="number-pad"
-          maxLength={6}
+          maxLength={8}
           error={codeError}
         />
         <Input
