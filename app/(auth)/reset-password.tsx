@@ -60,6 +60,17 @@ export default function ResetPasswordScreen() {
     });
   }, [code]);
 
+  // Evita que el ticker de auto-refresh intente renovar la sesión de recuperación
+  // mientras el usuario escribe: un refresh rechazado por el servidor borra la
+  // sesión del storage (auth-js._callRefreshToken -> _removeSession en error).
+  useEffect(() => {
+    if (!recoverySession) return;
+    supabase.auth.stopAutoRefresh();
+    return () => {
+      supabase.auth.startAutoRefresh();
+    };
+  }, [recoverySession]);
+
   async function handleSave() {
     setPasswordError('');
     setConfirmError('');
