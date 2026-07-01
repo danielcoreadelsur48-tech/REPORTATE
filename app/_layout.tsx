@@ -13,18 +13,35 @@ import { useNotificationStore } from '@/store/notificationStore';
 import { useDeepLinkStore } from '@/store/deepLinkStore';
 import { NotificationType } from '@/types/database';
 
-function handleAuthDeepLink(rawUrl: string, router: ReturnType<typeof useRouter>) {
+function redactUrl(url: string) {
+  return url.replace(/code=[^&]+/, 'code=REDACTED');
+}
+
+function handleAuthDeepLink(rawUrl: string, router: ReturnType<typeof useRouter>, source: string) {
+  const pushRaw = useDeepLinkStore.getState().pushRaw;
+  pushRaw(`[${source}] handleAuthDeepLink called with: ${redactUrl(rawUrl)}`);
+
   let parsed: URL;
   try {
     parsed = new URL(rawUrl);
-  } catch {
+  } catch (e) {
+    pushRaw(`[${source}] new URL() threw: ${e instanceof Error ? e.message : String(e)}`);
     return;
   }
   const screen = (parsed.hostname || parsed.pathname.replace(/^\//, '')) as 'reset-password' | 'verify-email' | string;
   const code = parsed.searchParams.get('code');
   const errorDescription = parsed.searchParams.get('error_description');
-  if (!code && !errorDescription) return;
-  if (screen !== 'reset-password' && screen !== 'verify-email') return;
+  pushRaw(
+    `[${source}] parsed -> screen=${screen} code=${code ? code.slice(0, 8) + '…' : 'null'} error=${errorDescription ?? 'null'}`
+  );
+  if (!code && !errorDescription) {
+    pushRaw(`[${source}] no code/error, abortando`);
+    return;
+  }
+  if (screen !== 'reset-password' && screen !== 'verify-email') {
+    pushRaw(`[${source}] screen "${screen}" no matchea, abortando`);
+    return;
+  }
 
   useDeepLinkStore.getState().setLink({ screen, code, errorDescription });
   router.replace(`/(auth)/${screen}` as '/(auth)/reset-password' | '/(auth)/verify-email');
@@ -97,14 +114,22 @@ export default function RootLayout() {
   useEffect(() => {
     if (!navigationState?.key || handledInitialUrlRef.current) return;
     handledInitialUrlRef.current = true;
+    useDeepLinkStore.getState().pushRaw('[cold-start] checking Linking.getInitialURL()…');
     Linking.getInitialURL().then((url) => {
-      if (url) handleAuthDeepLink(url, router);
+      useDeepLinkStore.getState().pushRaw(`[cold-start] getInitialURL resolved: ${url ? redactUrl(url) : 'null'}`);
+      if (url) handleAuthDeepLink(url, router, 'cold-start');
     });
   }, [navigationState?.key]);
 
   // Warm start: app ya estaba viva (foreground o background) y el usuario tocó el link
   useEffect(() => {
-    const sub = Linking.addEventListener('url', ({ url }) => handleAuthDeepLink(url, router));
+    useDeepLinkStore.getState().pushRaw('[warm-start] Linking listener attached');
+    const sub = Linking.addEventListener('url', (event) => {
+      useDeepLinkStore
+        .getState()
+        .pushRaw(`[warm-start] url event fired: hasUrl=${!!event?.url} value=${event?.url ? redactUrl(event.url) : 'undefined'}`);
+      if (event?.url) handleAuthDeepLink(event.url, router, 'warm-start');
+    });
     return () => sub.remove();
   }, []);
 

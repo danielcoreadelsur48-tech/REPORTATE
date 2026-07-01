@@ -28,6 +28,7 @@ export default function ResetPasswordScreen() {
   const { resetPasswordConfirm } = useAuth();
   const code = useDeepLinkStore((s) => s.code);
   const error_description = useDeepLinkStore((s) => s.errorDescription);
+  const rawLog = useDeepLinkStore((s) => s.rawLog);
 
   const [status, setStatus] = useState<Status>(error_description ? 'error' : 'loading');
   const [errorMsg, setErrorMsg] = useState(error_description ?? '');
@@ -40,6 +41,7 @@ export default function ResetPasswordScreen() {
   const [recoverySession, setRecoverySession] = useState<Session | null>(null);
   const [debugInfo, setDebugInfo] = useState<string[]>([]);
   const addDebug = (line: string) => setDebugInfo((prev) => [...prev, line]);
+  const fullLog = [...rawLog, ...debugInfo];
 
   // Diagnóstico puro: qué ve la pantalla apenas monta, antes de cualquier lógica.
   useEffect(() => {
@@ -147,9 +149,9 @@ export default function ResetPasswordScreen() {
         <Text style={styles.appName}>REPÓRTATE</Text>
         <ActivityIndicator size="large" color={Colors.primary[500]} />
         <Text style={[styles.subtitle, { marginTop: Spacing[4] }]}>Procesando enlace…</Text>
-        {debugInfo.length > 0 && (
+        {fullLog.length > 0 && (
           <View style={styles.debugBox}>
-            {debugInfo.map((line, i) => (
+            {fullLog.map((line, i) => (
               <Text key={i} selectable style={styles.debugText}>
                 {line}
               </Text>
@@ -176,9 +178,9 @@ export default function ResetPasswordScreen() {
           onPress={() => router.replace('/(auth)/login')}
           style={styles.button}
         />
-        {debugInfo.length > 0 && (
+        {fullLog.length > 0 && (
           <View style={styles.debugBox}>
-            {debugInfo.map((line, i) => (
+            {fullLog.map((line, i) => (
               <Text key={i} selectable style={styles.debugText}>
                 {line}
               </Text>
@@ -236,9 +238,9 @@ export default function ResetPasswordScreen() {
           loading={isSaving}
           style={styles.btn}
         />
-        {debugInfo.length > 0 && (
+        {fullLog.length > 0 && (
           <View style={styles.debugBox}>
-            {debugInfo.map((line, i) => (
+            {fullLog.map((line, i) => (
               <Text key={i} selectable style={styles.debugText}>
                 {line}
               </Text>
