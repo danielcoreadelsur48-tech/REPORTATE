@@ -49,6 +49,14 @@ export default function ResetPasswordScreen() {
   }, []);
 
   useEffect(() => {
+    if (error_description) {
+      addDebug(`[mount] error_description presente: ${error_description}`);
+      setErrorMsg(error_description);
+      setStatus('error');
+      signOut().catch(() => {});
+      useDeepLinkStore.getState().clear();
+      return;
+    }
     if (!accessToken || !refreshToken) {
       // Sin tokens en el store del deep link: puede ser un remount posterior a que
       // ya se haya seteado la sesión. Revisar si ya hay una persistida.
@@ -76,7 +84,7 @@ export default function ResetPasswordScreen() {
         setStatus('form');
       }
     });
-  }, [accessToken, refreshToken]);
+  }, [accessToken, refreshToken, error_description]);
 
   // Evita que el ticker de auto-refresh intente renovar la sesión de recuperación
   // mientras el usuario escribe: un refresh rechazado por el servidor borra la

@@ -21,6 +21,12 @@ export default function VerifyEmailScreen() {
   const [errorMsg, setErrorMsg] = useState(error_description ?? '');
 
   useEffect(() => {
+    if (error_description) {
+      setErrorMsg(error_description);
+      setStatus('error');
+      useDeepLinkStore.getState().clear();
+      return;
+    }
     if (!accessToken || !refreshToken) return;
     supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken }).then(({ error }) => {
       useDeepLinkStore.getState().clear();
@@ -31,7 +37,7 @@ export default function VerifyEmailScreen() {
         setStatus('success');
       }
     });
-  }, [accessToken, refreshToken]);
+  }, [accessToken, refreshToken, error_description]);
 
   if (status === 'loading') {
     return (
