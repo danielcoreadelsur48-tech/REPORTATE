@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { useGroupStore } from '@/store/groupStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { DayActivityContent } from '@/components/features/DayActivityContent';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Colors, Typography, Spacing } from '@/constants/theme';
@@ -19,6 +20,7 @@ export default function NotificationsScreen() {
   useFocusEffect(
     useCallback(() => {
       setIsFocused(true);
+      useNotificationStore.getState().markAllRead();
       return () => setIsFocused(false);
     }, []),
   );
