@@ -3,6 +3,14 @@ export interface DBUser {
   full_name: string;
   avatar_url: string | null;
   expo_push_token: string | null;
+  has_coe_access: boolean;
+  created_at: string;
+}
+
+export interface DBEnterpriseCode {
+  id: string;
+  code: string;
+  active: boolean;
   created_at: string;
 }
 

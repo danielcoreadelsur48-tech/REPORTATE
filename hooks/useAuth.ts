@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/services/supabase/client';
 import { getUserProfile, signIn, signOut, signUp, resetPassword, updatePassword, verifyRecoveryCode } from '@/services/supabase/auth';
+import { redeemEnterpriseCode } from '@/services/supabase/enterpriseCode';
 import { registerForPushNotifications } from '@/services/notifications/registerToken';
 
 async function fetchUserProfile(userId: string, retries = 2) {
@@ -135,5 +136,11 @@ export function useAuth() {
     await verifyRecoveryCode(email, code);
   }
 
-  return { session, user, isLoading, login, register, logout, forgotPassword, resetPasswordConfirm, verifyResetCode };
+  async function redeemCoeCode(code: string) {
+    if (!user) return;
+    await redeemEnterpriseCode(user.id, code);
+    setUser({ ...user, has_coe_access: true });
+  }
+
+  return { session, user, isLoading, login, register, logout, forgotPassword, resetPasswordConfirm, verifyResetCode, redeemCoeCode };
 }

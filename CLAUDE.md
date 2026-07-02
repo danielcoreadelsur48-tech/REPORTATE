@@ -19,7 +19,7 @@ Aplicación móvil multiplataforma (Android + iOS) de **control de presencia dia
 ### 1. Autenticación
 - Registro con email + password + nombre completo + foto de perfil (opcional, subida a Supabase Storage)
 - Inicio de sesión con sesión persistente (Supabase Auth, JWT)
-- Recuperación de contraseña vía email
+- **Recuperación de contraseña vía código OTP de 8 dígitos** (NO deep link — ver "Notas operativas Supabase" y `app/(auth)/verify-reset-code.tsx`)
 - Al registrarse, se crea automáticamente el registro en la tabla `users`
 
 ### 2. Roles
@@ -115,8 +115,9 @@ REPÓRTATE/
 │   │   ├── _layout.tsx               # Layout sin tabs, fondo de marca
 │   │   ├── login.tsx                 # Pantalla de inicio de sesión
 │   │   ├── register.tsx              # Registro de nuevo usuario
-│   │   ├── forgot-password.tsx       # Recuperación de contraseña
-│   │   └── verify-email.tsx          # Pantalla de éxito post-verificación de email
+│   │   ├── forgot-password.tsx       # Pide email, dispara envío de código OTP
+│   │   ├── verify-reset-code.tsx     # Código de 8 dígitos + nueva contraseña (verifyOtp, sin deep link)
+│   │   └── verify-email.tsx          # Verificación de email post-registro (SÍ usa deep link)
 │   │
 │   └── (app)/                        # Rutas protegidas (requieren sesión)
 │       ├── _layout.tsx               # Verifica sesión; redirige a (auth) si no hay
@@ -173,7 +174,8 @@ REPÓRTATE/
 ├── store/
 │   ├── authStore.ts                  # Usuario actual, token de sesión (Zustand)
 │   ├── groupStore.ts                 # Grupos del usuario, miembros activos
-│   └── sosStore.ts                   # Estado activo de SOS en el grupo
+│   ├── sosStore.ts                   # Estado activo de SOS en el grupo
+│   └── deepLinkStore.ts              # Solo verify-email: accessToken/refreshToken/screen del deep link
 │
 ├── services/
 │   ├── supabase/
@@ -242,6 +244,7 @@ REPÓRTATE/
 | `full_name` | `text` | NOT NULL |
 | `avatar_url` | `text` | URL en Supabase Storage |
 | `expo_push_token` | `text` | Token de notificaciones del dispositivo |
+| `has_coe_access` | `boolean` | DEFAULT false. Se activa al canjear un código empresarial (ver `enterprise_codes`); habilita el botón COE en home |
 | `created_at` | `timestamptz` | DEFAULT now() |
 
 ### `groups`
@@ -512,7 +515,8 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - Botones de reporte personalizados: crear, grilla, press con notificación grupal, recordatorio local, **días activos por botón** (`active_days int[]`, selector L–D, estado `day_inactive`)
 - Botón SOS: activación con confirmación (5 s countdown), tracking GPS, notifica **todos los grupos** del usuario (no solo el activo); incluye coords GPS en payload
 - Botón "Llegada a casa" en home: GPS + notificación grupal, graba en tabla `home_arrivals`
-- **Botón COE**: botón circular en home junto a "Llegada a casa", graba en tabla `coe_arrivals`, notificación grupal + GPS a capitanes. **Solo en rama `COE`** — eliminado en `final1`
+- **Botón COE**: botón circular en home junto a "Llegada a casa", graba en tabla `coe_arrivals`, notificación grupal + GPS a capitanes. Ahora también visible en `final1`, condicionado a `users.has_coe_access` (ver "Código empresarial" abajo)
+- **Código empresarial (acceso COE exclusivo)**: campo "Ingresar código empresarial" en `profile.tsx`. Código único y reutilizable (no uno por usuario) validado contra tabla `enterprise_codes`; al canjearse marca `users.has_coe_access = true` y el botón COE aparece en home sin reiniciar la app. El owner genera/desactiva códigos manualmente vía SQL Editor de Supabase (no hay panel de administración). Servicio: `services/supabase/enterpriseCode.ts#redeemEnterpriseCode`; hook: `useAuth().redeemCoeCode`
 - **Salir del grupo / Expulsar miembro**: miembros pueden salirse (ícono rojo en header de `group.tsx`); capitanes pueden expulsar (`kickMember` en `MemberCard`). Migración `014_group_members_delete_policies.sql`
 - Panel de actividad diaria (`DayActivitySheet`): bottom sheet 3 pestañas (Reportes / Emergencias / Sin reportar), Realtime, badge de unread, scroll habilitado
 - Edge Function `send-notification` desplegada
@@ -582,6 +586,16 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 | `report_date` | `date` | Fecha local del reporte |
 | `created_at` | `timestamptz` | |
 
+#### `enterprise_codes`
+| Campo | Tipo | Notas |
+|---|---|---|
+| `id` | `uuid` | PK |
+| `code` | `text` | UNIQUE. Código único y reutilizable — no es de un solo uso, lo canjean múltiples usuarios exclusivos |
+| `active` | `bool` | DEFAULT true. El owner lo pone en `false` vía SQL Editor para invalidar el código sin borrar el historial |
+| `created_at` | `timestamptz` | |
+
+*Sin políticas de INSERT/UPDATE/DELETE para clientes — el owner administra esta tabla desde el SQL Editor de Supabase (conecta como `postgres`, bypassea RLS). RLS solo permite SELECT de códigos con `active = true`.*
+
 ### Migraciones
 - ✓ `001_initial_schema.sql`
 - ✓ `002_add_group_delete_policy.sql`
@@ -597,6 +611,7 @@ Si **cualquier ítem falla**, detener el push, corregir y repetir el checklist d
 - ✓ `012_revoke_captain_policy.sql` — agrega `promoted_by`/`promoted_at` a `group_members`
 - ✓ `013_coe_arrivals.sql` — tabla `coe_arrivals` + RLS + Realtime
 - ✓ `014_group_members_delete_policies.sql` — políticas RLS DELETE para auto-salida y expulsión por capitán
+- ✓ `015_enterprise_codes.sql` — agrega `users.has_coe_access`; tabla `enterprise_codes` (código único reutilizable) + RLS de solo lectura
 
 ### Bugs resueltos críticos
 | Bug | Síntoma | Fix |
